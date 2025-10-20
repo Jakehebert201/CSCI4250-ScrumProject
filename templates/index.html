@@ -55,6 +55,57 @@
                             Latitude {{ '%.4f'|format(last_location.latitude) }}, Longitude {{ '%.4f'|format(last_location.longitude) }}
                         {% endif %}
                     {% else %}
+                        <li class="muted">No courses available.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <section class="session-tools" id="sessions">
+            <h2>Study Session Tracker</h2>
+            <p class="muted">Check in and out to log study time with geofencing safeguards.</p>
+            <div class="session-grid">
+                <form class="card form-card" action="{{ url_for('check_in') }}" method="post">
+                    <h3>Start a Session</h3>
+                    <label>
+                        Student ID
+                        <input type="text" name="student_id" data-student-input value="{{ default_student_id or '' }}" required>
+                    </label>
+                    <p class="muted small">Location is captured automatically when you check in.</p>
+                    <button type="submit" class="cta">Check In</button>
+                    {% if active_session %}
+                        <p class="muted">Current session started at {{ active_session.start_time.strftime('%b %d, %Y %H:%M') }} UTC.</p>
+                    {% endif %}
+                </form>
+
+                <form class="card form-card" action="{{ url_for('check_out') }}" method="post">
+                    <h3>End Active Session</h3>
+                    <label>
+                        Student ID
+                        <input type="text" name="student_id" data-student-input value="{{ default_student_id or '' }}" required>
+                    </label>
+                    <p class="muted small">We will confirm your location during check out.</p>
+                    <button type="submit" class="cta secondary">Check Out</button>
+                    {% if not active_session %}
+                        <p class="muted">No active session detected.</p>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="location-card card">
+                <h3>Current Location</h3>
+                <p class="muted" id="location-status" data-location-display>
+                    {% if last_location %}
+                        {% set parts = [] %}
+                        {% if last_location.city %}{% set _ = parts.append(last_location.city) %}{% endif %}
+                        {% if last_location.region %}{% set _ = parts.append(last_location.region) %}{% endif %}
+                        {% if last_location.country %}{% set _ = parts.append(last_location.country) %}{% endif %}
+                        {% if parts %}
+                            {{ parts | join(', ') }}
+                        {% else %}
+                            Latitude {{ '%.4f'|format(last_location.latitude) }}, Longitude {{ '%.4f'|format(last_location.longitude) }}
+                        {% endif %}
+                    {% else %}
                         Location has not been detected yet.
                     {% endif %}
                 </p>
@@ -70,7 +121,66 @@
                         data-longitude="{{ '%.6f'|format(last_location.longitude) }}"
                     {% endif %}
                 ></div>
-            </article>
+            </div>
+
+            <div class="session-history">
+                <h3>Recent Sessions</h3>
+                {% if sessions %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Started</th>
+                            <th>Ended</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>{{ session.start_time.strftime('%b %d, %Y %H:%M') }} UTC</td>
+                            <td>
+                                {% if session.end_time %}
+                                    {{ session.end_time.strftime('%b %d, %Y %H:%M') }} UTC
+                                {% else %}
+                                    <span class="muted">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if session.end_time %}
+                                    {% set duration = session.end_time - session.start_time %}
+                                    {{ (duration.total_seconds() // 60)|int }}m {{ (duration.total_seconds() % 60)|int }}s
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="muted">No sessions recorded yet.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="notifications-preview">
+            <div class="notifications-header">
+                <h2>Latest Notifications</h2>
+                <a class="cta tertiary" href="{{ url_for('notifications') }}">Manage Notifications</a>
+            </div>
+            {% if notifications %}
+            <ul class="notification-list">
+                {% for notification in notifications %}
+                <li class="card">
+                    <h3>{{ notification.title }}</h3>
+                    <p>{{ notification.message }}</p>
+                    <p class="muted small">Sent {{ notification.sent_at.strftime('%b %d, %Y %H:%M') }} UTC</p>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted">No notifications have been posted yet.</p>
+            {% endif %}
         </section>
     </main>
 
