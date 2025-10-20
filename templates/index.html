@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Success Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
@@ -130,6 +131,16 @@
                 </p>
                 <button type="button" class="cta tertiary" data-refresh-location>Refresh Location</button>
                 <p class="muted small">Detected with the open ipapi.co geolocation service.</p>
+                <div
+                    class="location-map"
+                    role="region"
+                    aria-label="Map of detected location"
+                    data-location-map
+                    {% if last_location %}
+                        data-latitude="{{ '%.6f'|format(last_location.latitude) }}"
+                        data-longitude="{{ '%.6f'|format(last_location.longitude) }}"
+                    {% endif %}
+                ></div>
             </div>
 
             <div class="session-history">
@@ -197,6 +208,7 @@
         <p>Powered by Flask and the Tracker sample dataset.</p>
     </footer>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <script src="{{ url_for('static', filename='location.js') }}" defer></script>
 </body>
 </html>
