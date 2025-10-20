@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+from typing import Dict
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

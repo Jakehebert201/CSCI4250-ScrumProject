@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Mapping, Optional, Tuple
 
 from flask import Flask, flash, redirect, render_template, request, url_for
 
@@ -20,26 +20,6 @@ def _default_data_path() -> Path:
     """Return the path to the bundled sample data file."""
 
     return Path(__file__).resolve().parent / "data" / "sample_data.json"
-
-
-def _collect_highlights(student_service: StudentService, student_ids: Iterable[str]) -> List[Dict[str, str]]:
-    """Generate a couple of friendly highlights for the landing page."""
-
-    highlights: List[Dict[str, str]] = []
-    for student_id in student_ids:
-        gpa = student_service.calculate_gpa(student_id)
-        if gpa is None:
-            continue
-        student = student_service.get_student(student_id)
-        highlights.append(
-            {
-                "title": f"{student.name}'s GPA",
-                "value": f"{gpa:.2f}",
-            }
-        )
-        if len(highlights) == 2:
-            break
-    return highlights
 
 
 def create_app(data_path: Path | None = None) -> Flask:
@@ -62,26 +42,11 @@ def create_app(data_path: Path | None = None) -> Flask:
     @app.route("/")
     def index():
         students = datastore.list_students()
-        courses = datastore.list_courses()
-        professors = datastore.list_professors()
-        stats = {
-            "Students": len(students),
-            "Courses": len(courses),
-            "Professors": len(professors),
-        }
-        highlights = _collect_highlights(student_service, (student.student_id for student in students))
-
         default_student_id = students[0].student_id if students else None
-        sessions = (
-            student_service.list_study_sessions(default_student_id)
+        last_location = (
+            location_service.get_location(default_student_id)
             if default_student_id
-            else []
-        )
-        active_session = student_service.datastore.get_active_study_session(default_student_id) if default_student_id else None
-        notifications = (
-            student_service.list_notifications(default_student_id)
-            if default_student_id
-            else []
+            else None
         )
         last_location = (
             location_service.get_location(default_student_id)
@@ -91,10 +56,6 @@ def create_app(data_path: Path | None = None) -> Flask:
 
         return render_template(
             "index.html",
-            stats=stats,
-            students=students[:3],
-            courses=courses[:3],
-            highlights=highlights,
             default_student_id=default_student_id,
             sessions=sessions[:5],
             active_session=active_session,
@@ -139,8 +100,7 @@ def create_app(data_path: Path | None = None) -> Flask:
     def check_out():
         student_id = request.form.get("student_id", "").strip()
         if not student_id:
-            flash("Student ID is required to check out", "error")
-            return redirect(url_for("index"))
+            return {"error": "Student ID is required"}, 400
         try:
             location = location_service.record_location(student_id)
         except LocationServiceError:

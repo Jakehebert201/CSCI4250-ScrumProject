@@ -18,62 +18,51 @@
     {% endif %}
     {% endwith %}
     <header class="hero">
-        <h1>Student Success Tracker</h1>
-        <p>A friendly dashboard that showcases the sample student data set.</p>
+        <h1>Student Location Tracker</h1>
+        <p>Detect and store each student's latest location using our open geolocation service.</p>
         <div class="cta-group">
-            <a class="cta" href="#insights">Explore the data</a>
+            <a class="cta" href="#location">Go to location tools</a>
         </div>
     </header>
 
     <main>
-        <section class="stats" id="insights">
-            <h2>At a Glance</h2>
-            <div class="grid">
-                {% for label, value in stats.items() %}
-                    <article class="card">
-                        <h3>{{ label }}</h3>
-                        <p class="value">{{ value }}</p>
-                    </article>
-                {% endfor %}
-                {% if not stats %}
-                    <p>No statistics available yet.</p>
-                {% endif %}
-            </div>
-        </section>
-
-        {% if highlights %}
-        <section class="highlights">
-            <h2>Student Highlights</h2>
-            <div class="grid">
-                {% for item in highlights %}
-                    <article class="card">
-                        <h3>{{ item.title }}</h3>
-                        <p class="value">{{ item.value }}</p>
-                    </article>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-
-        <section class="showcase">
-            <div>
-                <h2>Featured Students</h2>
-                <ul>
-                    {% for student in students %}
-                        <li>{{ student.name }} <span class="muted">({{ student.student_id }})</span></li>
-                    {% else %}
-                        <li class="muted">No students to display.</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <div>
-                <h2>Popular Courses</h2>
-                <ul>
-                    {% for course in courses %}
-                        <li>
-                            <strong>{{ course.name }}</strong>
-                            <span class="muted">{{ course.semester }} · {{ course.credits }} credits</span>
-                        </li>
+        <section class="location-section" id="location">
+            <article class="location-card card">
+                <h2>Current Location</h2>
+                <p class="muted">Enter a student ID and refresh to capture the most recent coordinates.</p>
+                <label>
+                    Student ID
+                    <input
+                        type="text"
+                        name="student_id"
+                        placeholder="e.g. s1001"
+                        value="{{ default_student_id or '' }}"
+                        data-student-input
+                    >
+                </label>
+                <input
+                    type="hidden"
+                    name="latitude"
+                    data-latitude-field
+                    value="{% if last_location %}{{ '%.6f'|format(last_location.latitude) }}{% endif %}"
+                >
+                <input
+                    type="hidden"
+                    name="longitude"
+                    data-longitude-field
+                    value="{% if last_location %}{{ '%.6f'|format(last_location.longitude) }}{% endif %}"
+                >
+                <p class="muted" id="location-status" data-location-display>
+                    {% if last_location %}
+                        {% set parts = [] %}
+                        {% if last_location.city %}{% set _ = parts.append(last_location.city) %}{% endif %}
+                        {% if last_location.region %}{% set _ = parts.append(last_location.region) %}{% endif %}
+                        {% if last_location.country %}{% set _ = parts.append(last_location.country) %}{% endif %}
+                        {% if parts %}
+                            {{ parts | join(', ') }}
+                        {% else %}
+                            Latitude {{ '%.4f'|format(last_location.latitude) }}, Longitude {{ '%.4f'|format(last_location.longitude) }}
+                        {% endif %}
                     {% else %}
                         <li class="muted">No courses available.</li>
                     {% endfor %}

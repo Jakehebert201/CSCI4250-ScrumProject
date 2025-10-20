@@ -197,22 +197,6 @@ footer {
     color: var(--muted);
 }
 
-.session-tools {
-    margin-top: 3rem;
-    background: #fff;
-    border-radius: 1rem;
-    box-shadow: var(--shadow);
-    padding: 2.5rem;
-    display: grid;
-    gap: 1.5rem;
-}
-
-.session-grid {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
-
 .form-card {
     display: grid;
     gap: 0.75rem;
@@ -238,29 +222,6 @@ footer {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
-}
-
-.session-history table {
-    width: 100%;
-    border-collapse: collapse;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-}
-
-.session-history th,
-.session-history td {
-    padding: 0.75rem 1rem;
-    text-align: left;
-}
-
-.session-history thead {
-    background: rgba(47, 119, 255, 0.08);
-    font-weight: 700;
-}
-
-.session-history tbody tr:nth-child(even) {
-    background: rgba(9, 30, 66, 0.03);
 }
 
 .notifications-preview {
