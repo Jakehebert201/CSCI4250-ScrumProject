@@ -92,10 +92,6 @@ def create_app(data_path: Path | None = None) -> Flask:
             notifications=notifications[:5],
         )
 
-    @app.route("/sprint-report")
-    def sprint_report():
-        return render_template("sprint_report.html")
-
     @app.post("/check-in")
     def check_in():
         student_id = request.form.get("student_id", "").strip()
