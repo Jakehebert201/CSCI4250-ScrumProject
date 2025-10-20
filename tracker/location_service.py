@@ -1,11 +1,10 @@
 """Utilities for retrieving and persisting user location information."""
 from __future__ import annotations
 
-import ipaddress
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -44,7 +43,7 @@ class LocationService:
         api_url: str = "https://ipapi.co/json/",
         http_get: Optional[Callable[[str], Dict[str, object]]] = None,
     ) -> None:
-        self._api_base_url = self._normalise_base_url(api_url)
+        self.api_url = api_url
         self._data_directory = data_directory
         self._storage_path = data_directory / "user_locations.json"
         self._storage_path.parent.mkdir(parents=True, exist_ok=True)
@@ -55,44 +54,11 @@ class LocationService:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def record_location(
-        self,
-        user_id: str,
-        *,
-        ip_address: Optional[str] = None,
-        coordinates: Optional[Tuple[float, float]] = None,
-    ) -> LocationRecord:
+    def record_location(self, user_id: str) -> LocationRecord:
         """Fetch the current location for ``user_id`` and persist it locally."""
 
-        record: Optional[LocationRecord] = None
-        api_error: Optional[LocationServiceError] = None
-
-        normalised_ip = self._normalise_ip(ip_address)
-        if normalised_ip:
-            try:
-                payload = self._http_get(self._build_api_url(normalised_ip))
-            except LocationServiceError as exc:
-                api_error = exc
-            else:
-                record = self._build_record(payload)
-
-        if coordinates is not None:
-            latitude, longitude = self._coerce_coordinates(coordinates)
-            record = LocationRecord(
-                latitude=latitude,
-                longitude=longitude,
-                city=record.city if record else None,
-                region=record.region if record else None,
-                country=record.country if record else None,
-            )
-
-        if record is None:
-            try:
-                payload = self._http_get(self._build_api_url(None))
-            except LocationServiceError as exc:
-                raise api_error or exc
-            record = self._build_record(payload)
-
+        payload = self._http_get(self.api_url)
+        record = self._build_record(payload)
         data = self._load_all()
         data[user_id] = record.to_dict()
         self._persist(data)
@@ -124,42 +90,6 @@ class LocationService:
         except URLError as exc:  # pragma: no cover - network issues
             raise LocationServiceError("Unable to contact location provider") from exc
         return json.loads(raw)
-
-    def _build_api_url(self, ip_address: Optional[str]) -> str:
-        base = self._api_base_url
-        if ip_address:
-            return f"{base}/{ip_address}/json/"
-        return f"{base}/json/"
-
-    @staticmethod
-    def _normalise_base_url(api_url: str) -> str:
-        base = api_url.rstrip("/")
-        if base.endswith("/json"):
-            base = base[: -len("/json")]
-        return base
-
-    @staticmethod
-    def _normalise_ip(ip_address: Optional[str]) -> Optional[str]:
-        if not ip_address:
-            return None
-        try:
-            ip_obj = ipaddress.ip_address(ip_address.strip())
-        except ValueError:
-            return None
-        if isinstance(ip_obj, ipaddress.IPv6Address) and ip_obj.ipv4_mapped:
-            ip_obj = ip_obj.ipv4_mapped
-        if not ip_obj.is_global:
-            return None
-        return str(ip_obj)
-
-    @staticmethod
-    def _coerce_coordinates(coordinates: Tuple[float, float]) -> Tuple[float, float]:
-        try:
-            latitude = float(coordinates[0])
-            longitude = float(coordinates[1])
-        except (TypeError, ValueError, IndexError) as exc:
-            raise LocationServiceError("Invalid coordinates provided") from exc
-        return latitude, longitude
 
     def _build_record(self, payload: Dict[str, object]) -> LocationRecord:
         try:

@@ -316,25 +316,6 @@ footer {
     background: rgba(47, 119, 255, 0.08);
 }
 
-.location-card label {
-    display: grid;
-    gap: 0.35rem;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.location-card input[type="text"] {
-    border: 1px solid rgba(9, 30, 66, 0.15);
-    border-radius: 0.5rem;
-    padding: 0.6rem 0.75rem;
-    font-size: 0.95rem;
-}
-
-.location-section {
-    display: grid;
-    gap: 2rem;
-}
-
 .location-card button {
     justify-self: start;
 }

@@ -3,13 +3,8 @@
   const DISPLAY_SELECTOR = '[data-location-display]';
   const STUDENT_INPUT_SELECTOR = '[data-student-input]';
   const MAP_SELECTOR = '[data-location-map]';
-  const LAT_FIELD_SELECTOR = '[data-latitude-field]';
-  const LNG_FIELD_SELECTOR = '[data-longitude-field]';
 
   const DEFAULT_VIEW = { center: [20, 0], zoom: 2 };
-
-  let cachedCoordinates = null;
-  let geolocationPromise = null;
 
   function formatLocation(data) {
     if (!data) {
@@ -60,66 +55,6 @@
     state.marker.bindPopup(popupContent).openPopup();
   }
 
-  function setHiddenCoordinateFields(coords) {
-    const latFields = document.querySelectorAll(LAT_FIELD_SELECTOR);
-    const lngFields = document.querySelectorAll(LNG_FIELD_SELECTOR);
-    cachedCoordinates = coords ? { ...coords } : null;
-
-    latFields.forEach((field) => {
-      field.value = coords ? String(coords.latitude) : '';
-    });
-    lngFields.forEach((field) => {
-      field.value = coords ? String(coords.longitude) : '';
-    });
-  }
-
-  function readHiddenCoordinateFields() {
-    const latField = document.querySelector(LAT_FIELD_SELECTOR);
-    const lngField = document.querySelector(LNG_FIELD_SELECTOR);
-    if (!latField || !lngField) {
-      return null;
-    }
-    const latitude = parseFloat(latField.value);
-    const longitude = parseFloat(lngField.value);
-    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
-      return null;
-    }
-    return { latitude, longitude };
-  }
-
-  function browserGeolocationAvailable() {
-    return typeof navigator !== 'undefined' && 'geolocation' in navigator;
-  }
-
-  async function resolveBrowserCoordinates() {
-    if (cachedCoordinates) {
-      return cachedCoordinates;
-    }
-    if (!browserGeolocationAvailable()) {
-      return null;
-    }
-    if (geolocationPromise) {
-      return geolocationPromise;
-    }
-    geolocationPromise = new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          setHiddenCoordinateFields(coords);
-          resolve(coords);
-        },
-        () => resolve(null),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
-      );
-    }).finally(() => {
-      geolocationPromise = null;
-    });
-    return geolocationPromise;
-  }
-
   async function fetchLocation(studentId, displayNode, mapState) {
     if (!studentId) {
       displayNode.textContent = 'Enter a student ID to detect location.';
@@ -127,18 +62,12 @@
     }
     displayNode.textContent = 'Detecting location…';
     try {
-      const cached = readHiddenCoordinateFields();
-      const coords = cached || (await resolveBrowserCoordinates());
       const response = await fetch('/api/location', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          student_id: studentId,
-          latitude: coords ? coords.latitude : undefined,
-          longitude: coords ? coords.longitude : undefined,
-        }),
+        body: JSON.stringify({ student_id: studentId }),
       });
       const payload = await response.json();
       if (!response.ok || payload.error) {
@@ -147,7 +76,6 @@
       }
       displayNode.textContent = formatLocation(payload);
       if (typeof payload.latitude === 'number' && typeof payload.longitude === 'number') {
-        setHiddenCoordinateFields({ latitude: payload.latitude, longitude: payload.longitude });
         updateMapLocation(mapState, [payload.latitude, payload.longitude]);
       }
     } catch (error) {
@@ -179,13 +107,6 @@
 
     if (initialCoords) {
       updateMapLocation(mapState, initialCoords);
-    }
-
-    const storedCoords = readHiddenCoordinateFields();
-    if (storedCoords) {
-      cachedCoordinates = storedCoords;
-    } else {
-      resolveBrowserCoordinates();
     }
 
     let currentStudentId = '';
