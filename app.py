@@ -16,10 +16,10 @@ from tracker.student_service import (
 )
 
 
-def _default_data_path() -> Path:
-    """Return the path to the bundled sample data file."""
+def _default_data_directory() -> Path:
+    """Return the path to the application's bundled data directory."""
 
-    return Path(__file__).resolve().parent / "data" / "sample_data.json"
+    return Path(__file__).resolve().parent / "data"
 
 
 def create_app(data_path: Path | None = None) -> Flask:
