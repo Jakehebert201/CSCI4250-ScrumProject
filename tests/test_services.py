@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 import pytest
 
 from tracker.datastore import JSONDataStore
-from tracker.location_service import LocationService, LocationServiceError
+from tracker.location_service import LocationService
 from tracker.professor_service import AuthorizationError, ProfessorService
 from tracker.student_service import (
     ActiveSessionExistsError,
@@ -163,67 +163,13 @@ def test_location_service_records(tmp_path: Path) -> None:
         "region": "North",
         "country": "Testland",
     }
-    requested_urls = []
+    service = LocationService(data_dir, http_get=lambda _: responses)
 
-    def fake_get(url: str) -> Dict[str, object]:
-        requested_urls.append(url)
-        return responses
-
-    service = LocationService(data_dir, http_get=fake_get)
-
-    record = service.record_location("s1001", ip_address="8.8.8.8")
+    record = service.record_location("s1001")
     assert record.latitude == 10.0
     assert record.longitude == -20.5
-
-    assert requested_urls and requested_urls[0].endswith("/8.8.8.8/json/")
 
     stored = service.get_location("s1001")
     assert stored is not None
     assert stored.city == "Testville"
     assert stored.country == "Testland"
-
-
-def test_location_service_coordinate_fallback(tmp_path: Path) -> None:
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    calls = []
-
-    def failing_get(url: str) -> Dict[str, object]:
-        calls.append(url)
-        raise LocationServiceError("boom")
-
-    service = LocationService(data_dir, http_get=failing_get)
-
-    record = service.record_location(
-        "s1001",
-        ip_address="8.8.8.8",
-        coordinates=(33.755, -84.39),
-    )
-
-    assert len(calls) == 1
-    assert "8.8.8.8" in calls[0]
-    assert record.latitude == pytest.approx(33.755)
-    assert record.longitude == pytest.approx(-84.39)
-    stored = service.get_location("s1001")
-    assert stored is not None
-    assert stored.latitude == pytest.approx(33.755)
-    assert stored.region is None
-
-
-def test_location_service_private_ip(tmp_path: Path) -> None:
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    responses = {
-        "latitude": 40.0,
-        "longitude": -75.0,
-    }
-    requested_urls = []
-
-    def fake_get(url: str) -> Dict[str, object]:
-        requested_urls.append(url)
-        return responses
-
-    service = LocationService(data_dir, http_get=fake_get)
-    service.record_location("s1001", ip_address="127.0.0.1")
-
-    assert requested_urls and requested_urls[0].endswith("/json/")

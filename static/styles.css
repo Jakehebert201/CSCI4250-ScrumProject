@@ -171,21 +171,7 @@ footer {
     color: var(--muted);
 }
 
-.small {
-    font-size: 0.85rem;
-}
-
-.cta.tertiary {
-    background: transparent;
-    color: var(--accent);
-    border: 1px solid rgba(47, 119, 255, 0.35);
-}
-
-.cta.tertiary:hover {
-    background: rgba(47, 119, 255, 0.08);
-}
-
-.location-card {
+.form-card {
     display: grid;
     gap: 0.75rem;
     background: rgba(47, 119, 255, 0.08);
@@ -205,9 +191,97 @@ footer {
     font-size: 0.95rem;
 }
 
-.location-section {
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.notifications-preview {
+    margin-top: 3rem;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    padding: 2.5rem;
+    display: grid;
+    gap: 1.5rem;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+}
+
+.notification-list.full li article {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.notification-list .card {
+    padding: 1.5rem;
+}
+
+.notification-list .small {
+    font-size: 0.85rem;
+}
+
+.small {
+    font-size: 0.85rem;
+}
+
+.cta.tertiary {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid rgba(47, 119, 255, 0.35);
+}
+
+.cta.tertiary:hover {
+    background: rgba(47, 119, 255, 0.08);
+}
+
+.hero.compact {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+}
+
+.notification-center {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
     display: grid;
     gap: 2rem;
+}
+
+.location-card button {
+    justify-self: start;
+}
+
+.location-map {
+    height: 240px;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    width: 100%;
+}
+
+.location-map.leaflet-container {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.location-card {
+    display: grid;
+    gap: 0.75rem;
+    background: rgba(47, 119, 255, 0.08);
 }
 
 .location-card button {
