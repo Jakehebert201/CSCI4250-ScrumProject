@@ -2,14 +2,29 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime
+from math import radians, sin, cos, sqrt, atan2
 from typing import Dict, Iterable, List, Optional
+from uuid import uuid4
 
 from .datastore import JSONDataStore
-from .models import Course, Enrollment, Student
+from .models import Course, Enrollment, Notification, Student, StudySession
 
 
 class StudentNotFoundError(LookupError):
     """Raised when a student cannot be located in the data store."""
+
+
+class ActiveSessionExistsError(RuntimeError):
+    """Raised when a student attempts to start a session while one is active."""
+
+
+class SessionNotFoundError(LookupError):
+    """Raised when a student attempts to modify a session that is not active."""
+
+
+class LocationValidationError(ValueError):
+    """Raised when a student's reported location falls outside the approved area."""
 
 
 class StudentService:
@@ -17,6 +32,10 @@ class StudentService:
 
     def __init__(self, datastore: JSONDataStore):
         self.datastore = datastore
+        # Downtown campus coordinates (Atlanta, GA) used as default study hub.
+        self._campus_latitude = 33.7550
+        self._campus_longitude = -84.3900
+        self._campus_radius_meters = 150.0
 
     # ------------------------------------------------------------------
     # Retrieval helpers
@@ -123,6 +142,73 @@ class StudentService:
         return matches
 
     # ------------------------------------------------------------------
+    # Study session management
+    # ------------------------------------------------------------------
+    def start_study_session(self, student_id: str, *, latitude: float, longitude: float) -> StudySession:
+        """Start a new study session for the given student with geofence validation."""
+
+        self.get_student(student_id)
+        if self.datastore.get_active_study_session(student_id):
+            raise ActiveSessionExistsError("An active study session already exists")
+
+        if not self._within_campus(latitude, longitude):
+            raise LocationValidationError("Student must be within the designated study area to check in")
+
+        session = StudySession(
+            session_id=str(uuid4()),
+            student_id=student_id,
+            start_time=datetime.utcnow(),
+            start_latitude=latitude,
+            start_longitude=longitude,
+        )
+        self.datastore.upsert_study_session(session)
+        return session
+
+    def end_study_session(self, student_id: str, *, latitude: float, longitude: float) -> StudySession:
+        """End the currently active study session for a student."""
+
+        self.get_student(student_id)
+        session = self.datastore.get_active_study_session(student_id)
+        if not session:
+            raise SessionNotFoundError("No active study session found")
+
+        if not self._within_campus(latitude, longitude):
+            raise LocationValidationError("Student must be within the designated study area to check out")
+
+        session.end_time = datetime.utcnow()
+        session.end_latitude = latitude
+        session.end_longitude = longitude
+        self.datastore.upsert_study_session(session)
+        return session
+
+    def list_study_sessions(self, student_id: str) -> List[StudySession]:
+        self.get_student(student_id)
+        sessions = [
+            session
+            for session in self.datastore.list_study_sessions()
+            if session.student_id == student_id
+        ]
+        return sorted(sessions, key=lambda session: session.start_time, reverse=True)
+
+    # ------------------------------------------------------------------
+    # Notification utilities
+    # ------------------------------------------------------------------
+    def list_notifications(self, student_id: str) -> List[Notification]:
+        self.get_student(student_id)
+        notifications = self.datastore.list_notifications()
+        return sorted(notifications, key=lambda item: item.sent_at, reverse=True)
+
+    def mark_notification_read(self, student_id: str, notification_id: str) -> Notification:
+        self.get_student(student_id)
+        notification = self.datastore.get_notification(notification_id)
+        if not notification:
+            raise LookupError(f"Notification '{notification_id}' not found")
+        if student_id not in notification.read_by:
+            notification.read_by.append(student_id)
+            self.datastore.upsert_notification(notification)
+        return notification
+
+    # ------------------------------------------------------------------
     # Internal utilities
     # ------------------------------------------------------------------
     def _student_enrollments(self, student_id: str) -> Iterable[Enrollment]:
@@ -135,3 +221,29 @@ class StudentService:
         if not course:
             raise LookupError(f"Course '{course_id}' is missing from the data store")
         return course
+
+    def _within_campus(self, latitude: float, longitude: float) -> bool:
+        """Return ``True`` if the location is within the configured campus radius."""
+
+        distance = self._haversine_distance(
+            latitude,
+            longitude,
+            self._campus_latitude,
+            self._campus_longitude,
+        )
+        return distance <= self._campus_radius_meters
+
+    @staticmethod
+    def _haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Calculate the great-circle distance between two points in meters."""
+
+        radius_earth_km = 6371.0
+        lat1_rad, lon1_rad = radians(lat1), radians(lon1)
+        lat2_rad, lon2_rad = radians(lat2), radians(lon2)
+        delta_lat = lat2_rad - lat1_rad
+        delta_lon = lon2_rad - lon1_rad
+
+        a = sin(delta_lat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(delta_lon / 2) ** 2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        distance_km = radius_earth_km * c
+        return distance_km * 1000

@@ -23,6 +23,8 @@ class JSONDataStore:
             "professors": [],
             "courses": [],
             "enrollments": [],
+            "study_sessions": [],
+            "notifications": [],
         }
         if self.path.exists():
             self._load()
@@ -63,6 +65,12 @@ class JSONDataStore:
     def list_enrollments(self) -> List[models.Enrollment]:
         return [models.Enrollment.from_dict(data) for data in self._data["enrollments"]]
 
+    def list_study_sessions(self) -> List[models.StudySession]:
+        return [models.StudySession.from_dict(data) for data in self._data["study_sessions"]]
+
+    def list_notifications(self) -> List[models.Notification]:
+        return [models.Notification.from_dict(data) for data in self._data["notifications"]]
+
     def get_student(self, student_id: str) -> Optional[models.Student]:
         for student in self.list_students():
             if student.student_id == student_id:
@@ -87,6 +95,18 @@ class JSONDataStore:
                 return enrollment
         return None
 
+    def get_active_study_session(self, student_id: str) -> Optional[models.StudySession]:
+        for session in self.list_study_sessions():
+            if session.student_id == student_id and session.end_time is None:
+                return session
+        return None
+
+    def get_notification(self, notification_id: str) -> Optional[models.Notification]:
+        for notification in self.list_notifications():
+            if notification.notification_id == notification_id:
+                return notification
+        return None
+
     # ------------------------------------------------------------------
     # Mutation helpers
     # ------------------------------------------------------------------
@@ -102,6 +122,14 @@ class JSONDataStore:
     def upsert_enrollment(self, enrollment: models.Enrollment) -> None:
         serialized = enrollment.to_dict()
         self._upsert_raw("enrollments", serialized, ("student_id", "course_id"))
+
+    def upsert_study_session(self, session: models.StudySession) -> None:
+        serialized = session.to_dict()
+        self._upsert_raw("study_sessions", serialized, "session_id")
+
+    def upsert_notification(self, notification: models.Notification) -> None:
+        serialized = notification.to_dict()
+        self._upsert_raw("notifications", serialized, "notification_id")
 
     def _upsert(self, collection: str, entity, identifier: str) -> None:
         serialized = asdict(entity)
@@ -122,11 +150,15 @@ class JSONDataStore:
         self._persist()
 
     def upsert_many(self, students: Iterable[models.Student], professors: Iterable[models.Professor],
-                    courses: Iterable[models.Course], enrollments: Iterable[models.Enrollment]) -> None:
+                    courses: Iterable[models.Course], enrollments: Iterable[models.Enrollment],
+                    study_sessions: Iterable[models.StudySession] = (),
+                    notifications: Iterable[models.Notification] = ()) -> None:
         self._data["students"] = [asdict(student) for student in students]
         self._data["professors"] = [asdict(professor) for professor in professors]
         self._data["courses"] = [asdict(course) for course in courses]
         self._data["enrollments"] = [enrollment.to_dict() for enrollment in enrollments]
+        self._data["study_sessions"] = [session.to_dict() for session in study_sessions]
+        self._data["notifications"] = [notification.to_dict() for notification in notifications]
         self._persist()
 
     # ------------------------------------------------------------------

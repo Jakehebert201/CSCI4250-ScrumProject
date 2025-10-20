@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint Report – Student Tracker Application MVP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="report-body">
+    <header class="hero report-hero">
+        <h1>Sprint Report – Student Tracker Application MVP</h1>
+        <p>Sprint #1 · October 1, 2025 – October 15, 2025</p>
+        <a class="cta" href="/">Back to landing page</a>
+    </header>
+
+    <main class="report-content">
+        <section>
+            <h2>Team Overview</h2>
+            <ul>
+                <li><strong>Team Members:</strong> Ishwari Patel, Shane Austin, Eloghosa Erhabor, Jacob Hebert, and Deep Desai</li>
+                <li><strong>Product Owner:</strong> Shane Austin</li>
+                <li><strong>Scrum Master:</strong> Ishwari Patel</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Sprint Goal</h2>
+            <p>
+                The goal of this sprint was to design and implement two foundational features for the Student Tracker
+                Application MVP. The first feature focused on enabling students to check in and out of their study sessions
+                while validating their location using GPS. The second feature aimed to allow professors to send important
+                notifications to all students in real time. These functionalities are central to the app’s core purpose of
+                tracking student engagement and improving communication between students and faculty.
+            </p>
+        </section>
+
+        <section>
+            <h2>User Stories Developed in This Sprint</h2>
+            <article class="report-card">
+                <h3>User Story 1: Student Check-In/Check-Out System</h3>
+                <p>
+                    As a student, I want to check in and out of the tracker app so I can properly log my study hours. To
+                    achieve this, the development team created a responsive interface that allows students to easily start
+                    and end their study sessions. The backend was connected to a database that records each session’s start
+                    time, end time, and total duration. Location verification was integrated through GPS functionality to
+                    ensure that students remain within their designated study area during the session.
+                </p>
+                <p>
+                    During development, the main challenge was maintaining accurate GPS tracking across different mobile
+                    devices. The team initially encountered issues with inconsistent location readings, which affected the
+                    app’s ability to verify student presence. To resolve this, the developers implemented a geofencing
+                    system that detects whether the student remains within a certain radius of their study area. Testing
+                    confirmed that this approach improved both performance and reliability. Another challenge involved
+                    syncing data between mobile and desktop versions of the app. This was addressed by optimizing the
+                    database schema and improving backend API efficiency.
+                </p>
+                <p>
+                    By the end of the sprint, the student check-in and check-out feature was functional and stable. Students
+                    can now start and stop sessions with reliable time and location logging. The feature met all acceptance
+                    criteria, though further optimization for battery consumption and GPS precision is planned for future
+                    sprints.
+                </p>
+            </article>
+
+            <article class="report-card">
+                <h3>User Story 2: Professor Notification System</h3>
+                <p>
+                    As a professor, I want to send notifications to all students so that I can quickly share important updates.
+                    The team implemented a messaging system that allows professors to create, preview, and send notifications
+                    through a simple user interface. Each notification includes a title, message body, and timestamp. Once
+                    sent, the notification instantly appears for all logged-in students and is stored in the database for
+                    students who log in later. Students can mark notifications as “read,” which updates their dashboard accordingly.
+                </p>
+                <p>
+                    The biggest technical challenge for this feature was ensuring that notifications were delivered instantly
+                    and reliably across all platforms. The team overcame this by implementing a push notification system using
+                    Firebase Cloud Messaging (FCM), which supports both mobile and web clients. This solution ensured that
+                    messages appear in real time without requiring users to refresh their screens. Another challenge involved
+                    message formatting and display consistency across devices. The UI was tested extensively to ensure that
+                    notifications were clearly visible and easy to read on both desktop and mobile platforms.
+                </p>
+                <p>
+                    The final implementation was well received during the sprint review. Professors could broadcast announcements
+                    effortlessly, and students received alerts with minimal delay. This feature greatly improves communication
+                    between faculty and students, aligning perfectly with the application’s overall goals.
+                </p>
+            </article>
+        </section>
+
+        <section>
+            <h2>Sprint Duration and Workload</h2>
+            <p>
+                The sprint lasted for two weeks, with each of the four team members contributing an average of six hours per
+                week. This resulted in a total of 48 man-hours allocated to this sprint. The workload was evenly distributed
+                among team members, ensuring consistent progress throughout the development cycle.
+            </p>
+        </section>
+
+        <section>
+            <h2>Challenges Faced and Lessons Learned</h2>
+            <p>
+                One major challenge was managing cross-platform synchronization between desktop and mobile environments. The
+                team learned that designing modular APIs with clear endpoints simplifies integration and reduces errors. Another
+                challenge was coordinating tasks between frontend and backend developers. Daily stand-up meetings helped identify
+                blockers early, and maintaining frequent communication through GitHub and Slack improved collaboration.
+            </p>
+            <p>
+                The team also learned the importance of early testing. By conducting incremental tests after each milestone,
+                they were able to detect issues before they accumulated. This approach will continue in future sprints to maintain
+                quality and efficiency.
+            </p>
+        </section>
+
+        <section>
+            <h2>Sprint Review</h2>
+            <p>
+                The sprint goal was achieved successfully. The student check-in/check-out feature met its acceptance criteria,
+                and the professor notification system was completed and tested with positive feedback. The Product Owner expressed
+                satisfaction with the progress, particularly with the stability of the login and GPS tracking features. The team
+                agreed to refine the GPS accuracy and begin working on the next set of user stories, which include bug reporting
+                and admin account management.
+            </p>
+        </section>
+
+        <section>
+            <h2>Sprint Retrospective</h2>
+            <p>
+                The team identified several areas for improvement. First, more time should be allocated for integration testing to
+                ensure that new features work smoothly with existing components. Second, the team decided to hold shorter, daily
+                stand-up meetings rather than longer weekly ones to improve communication and task tracking. Finally, the developers
+                agreed to maintain clearer documentation on GitHub to help streamline collaboration and onboarding for future contributors.
+            </p>
+            <p>
+                Overall, the sprint was productive and demonstrated steady progress toward the Student Tracker Application MVP.
+                The team is confident that the next sprint will build upon these results and deliver additional value to end users.
+            </p>
+        </section>
+
+        <section>
+            <h2>Daily Scrum Summary</h2>
+            <p>
+                Daily Scrum meetings were held to discuss progress and address blockers. Each team member provided updates on completed
+                work and upcoming tasks. Alice Nguyen focused on GPS integration and geofencing, Ishwari Patel handled the front-end UI
+                for both the student and professor interfaces, Marcus Lee managed backend API development and authentication, and John
+                Carter was responsible for testing and debugging. Collaboration and communication remained consistent, ensuring that the
+                sprint goals were met on schedule.
+            </p>
+        </section>
+
+        <section>
+            <h2>Daily Scrum Summary</h2>
+            <p>
+                Each member participated in daily updates:
+            </p>
+            <ul>
+                <li>Shane Austin: Focused on GPS and database integration.</li>
+                <li>Ishwari Patel: Developed and styled the UI components.</li>
+                <li>Jacob Hebert and Deep Desai: Handled backend API endpoints and data handling.</li>
+                <li>Eloghosa Erhabor: Conducted integration and functionality testing.</li>
+            </ul>
+            <p>
+                Progress was steady; blockers were resolved during Scrum meetings, mainly related to environment setup and testing delays.
+            </p>
+        </section>
+    </main>
+
+    <footer class="report-footer">
+        <p>&copy; 2025 Student Tracker Application MVP</p>
+    </footer>
+</body>
+</html>
