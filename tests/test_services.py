@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 import pytest
 
 from tracker.datastore import JSONDataStore
+from tracker.location_service import LocationService
 from tracker.professor_service import AuthorizationError, ProfessorService
 from tracker.student_service import (
     ActiveSessionExistsError,
@@ -149,3 +150,25 @@ def test_notification_flow(datastore: JSONDataStore) -> None:
     assert "s1001" in updated.read_by
     stored = datastore.get_notification(created.notification_id)
     assert stored is not None and "s1001" in stored.read_by
+
+
+def test_location_service_records(tmp_path: Path) -> None:
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    responses = {
+        "latitude": 10.0,
+        "longitude": -20.5,
+        "city": "Testville",
+        "region": "North",
+        "country": "Testland",
+    }
+    service = LocationService(data_dir, http_get=lambda _: responses)
+
+    record = service.record_location("s1001")
+    assert record.latitude == 10.0
+    assert record.longitude == -20.5
+
+    stored = service.get_location("s1001")
+    assert stored is not None
+    assert stored.city == "Testville"
+    assert stored.country == "Testland"

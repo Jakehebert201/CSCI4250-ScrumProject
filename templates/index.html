@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Success Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
@@ -88,18 +89,9 @@
                     <h3>Start a Session</h3>
                     <label>
                         Student ID
-                        <input type="text" name="student_id" value="{{ default_student_id or '' }}" required>
+                        <input type="text" name="student_id" data-student-input value="{{ default_student_id or '' }}" required>
                     </label>
-                    <div class="form-row">
-                        <label>
-                            Latitude
-                            <input type="number" step="0.000001" name="latitude" value="33.755000" required>
-                        </label>
-                        <label>
-                            Longitude
-                            <input type="number" step="0.000001" name="longitude" value="-84.390000" required>
-                        </label>
-                    </div>
+                    <p class="muted small">Location is captured automatically when you check in.</p>
                     <button type="submit" class="cta">Check In</button>
                     {% if active_session %}
                         <p class="muted">Current session started at {{ active_session.start_time.strftime('%b %d, %Y %H:%M') }} UTC.</p>
@@ -110,23 +102,45 @@
                     <h3>End Active Session</h3>
                     <label>
                         Student ID
-                        <input type="text" name="student_id" value="{{ default_student_id or '' }}" required>
+                        <input type="text" name="student_id" data-student-input value="{{ default_student_id or '' }}" required>
                     </label>
-                    <div class="form-row">
-                        <label>
-                            Latitude
-                            <input type="number" step="0.000001" name="latitude" value="33.755000" required>
-                        </label>
-                        <label>
-                            Longitude
-                            <input type="number" step="0.000001" name="longitude" value="-84.390000" required>
-                        </label>
-                    </div>
+                    <p class="muted small">We will confirm your location during check out.</p>
                     <button type="submit" class="cta secondary">Check Out</button>
                     {% if not active_session %}
                         <p class="muted">No active session detected.</p>
                     {% endif %}
                 </form>
+            </div>
+
+            <div class="location-card card">
+                <h3>Current Location</h3>
+                <p class="muted" id="location-status" data-location-display>
+                    {% if last_location %}
+                        {% set parts = [] %}
+                        {% if last_location.city %}{% set _ = parts.append(last_location.city) %}{% endif %}
+                        {% if last_location.region %}{% set _ = parts.append(last_location.region) %}{% endif %}
+                        {% if last_location.country %}{% set _ = parts.append(last_location.country) %}{% endif %}
+                        {% if parts %}
+                            {{ parts | join(', ') }}
+                        {% else %}
+                            Latitude {{ '%.4f'|format(last_location.latitude) }}, Longitude {{ '%.4f'|format(last_location.longitude) }}
+                        {% endif %}
+                    {% else %}
+                        Location has not been detected yet.
+                    {% endif %}
+                </p>
+                <button type="button" class="cta tertiary" data-refresh-location>Refresh Location</button>
+                <p class="muted small">Detected with the open ipapi.co geolocation service.</p>
+                <div
+                    class="location-map"
+                    role="region"
+                    aria-label="Map of detected location"
+                    data-location-map
+                    {% if last_location %}
+                        data-latitude="{{ '%.6f'|format(last_location.latitude) }}"
+                        data-longitude="{{ '%.6f'|format(last_location.longitude) }}"
+                    {% endif %}
+                ></div>
             </div>
 
             <div class="session-history">
@@ -193,5 +207,8 @@
     <footer>
         <p>Powered by Flask and the Tracker sample dataset.</p>
     </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="{{ url_for('static', filename='location.js') }}" defer></script>
 </body>
 </html>
