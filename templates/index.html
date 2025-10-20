@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Success Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <header class="hero">
+        <h1>Student Success Tracker</h1>
+        <p>A friendly dashboard that showcases the sample student data set.</p>
+        <div class="cta-group">
+            <a class="cta" href="#insights">Explore the data</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="stats" id="insights">
+            <h2>At a Glance</h2>
+            <div class="grid">
+                {% for label, value in stats.items() %}
+                    <article class="card">
+                        <h3>{{ label }}</h3>
+                        <p class="value">{{ value }}</p>
+                    </article>
+                {% endfor %}
+                {% if not stats %}
+                    <p>No statistics available yet.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if highlights %}
+        <section class="highlights">
+            <h2>Student Highlights</h2>
+            <div class="grid">
+                {% for item in highlights %}
+                    <article class="card">
+                        <h3>{{ item.title }}</h3>
+                        <p class="value">{{ item.value }}</p>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="showcase">
+            <div>
+                <h2>Featured Students</h2>
+                <ul>
+                    {% for student in students %}
+                        <li>{{ student.name }} <span class="muted">({{ student.student_id }})</span></li>
+                    {% else %}
+                        <li class="muted">No students to display.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div>
+                <h2>Popular Courses</h2>
+                <ul>
+                    {% for course in courses %}
+                        <li>
+                            <strong>{{ course.name }}</strong>
+                            <span class="muted">{{ course.semester }} · {{ course.credits }} credits</span>
+                        </li>
+                    {% else %}
+                        <li class="muted">No courses available.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <section class="session-tools" id="sessions">
+            <h2>Study Session Tracker</h2>
+            <p class="muted">Check in and out to log study time with geofencing safeguards.</p>
+            <div class="session-grid">
+                <form class="card form-card" action="{{ url_for('check_in') }}" method="post">
+                    <h3>Start a Session</h3>
+                    <label>
+                        Student ID
+                        <input type="text" name="student_id" value="{{ default_student_id or '' }}" required>
+                    </label>
+                    <div class="form-row">
+                        <label>
+                            Latitude
+                            <input type="number" step="0.000001" name="latitude" value="33.755000" required>
+                        </label>
+                        <label>
+                            Longitude
+                            <input type="number" step="0.000001" name="longitude" value="-84.390000" required>
+                        </label>
+                    </div>
+                    <button type="submit" class="cta">Check In</button>
+                    {% if active_session %}
+                        <p class="muted">Current session started at {{ active_session.start_time.strftime('%b %d, %Y %H:%M') }} UTC.</p>
+                    {% endif %}
+                </form>
+
+                <form class="card form-card" action="{{ url_for('check_out') }}" method="post">
+                    <h3>End Active Session</h3>
+                    <label>
+                        Student ID
+                        <input type="text" name="student_id" value="{{ default_student_id or '' }}" required>
+                    </label>
+                    <div class="form-row">
+                        <label>
+                            Latitude
+                            <input type="number" step="0.000001" name="latitude" value="33.755000" required>
+                        </label>
+                        <label>
+                            Longitude
+                            <input type="number" step="0.000001" name="longitude" value="-84.390000" required>
+                        </label>
+                    </div>
+                    <button type="submit" class="cta secondary">Check Out</button>
+                    {% if not active_session %}
+                        <p class="muted">No active session detected.</p>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="session-history">
+                <h3>Recent Sessions</h3>
+                {% if sessions %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Started</th>
+                            <th>Ended</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>{{ session.start_time.strftime('%b %d, %Y %H:%M') }} UTC</td>
+                            <td>
+                                {% if session.end_time %}
+                                    {{ session.end_time.strftime('%b %d, %Y %H:%M') }} UTC
+                                {% else %}
+                                    <span class="muted">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if session.end_time %}
+                                    {% set duration = session.end_time - session.start_time %}
+                                    {{ (duration.total_seconds() // 60)|int }}m {{ (duration.total_seconds() % 60)|int }}s
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="muted">No sessions recorded yet.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="notifications-preview">
+            <div class="notifications-header">
+                <h2>Latest Notifications</h2>
+                <a class="cta tertiary" href="{{ url_for('notifications') }}">Manage Notifications</a>
+            </div>
+            {% if notifications %}
+            <ul class="notification-list">
+                {% for notification in notifications %}
+                <li class="card">
+                    <h3>{{ notification.title }}</h3>
+                    <p>{{ notification.message }}</p>
+                    <p class="muted small">Sent {{ notification.sent_at.strftime('%b %d, %Y %H:%M') }} UTC</p>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted">No notifications have been posted yet.</p>
+            {% endif %}
+        </section>
+    </main>
+
+    <footer>
+        <p>Powered by Flask and the Tracker sample dataset.</p>
+    </footer>
+</body>
+</html>

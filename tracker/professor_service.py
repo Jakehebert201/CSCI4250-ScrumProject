@@ -1,11 +1,12 @@
 """Professor-facing services for the student tracker application."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
+from uuid import uuid4
 
 from .datastore import JSONDataStore
-from .models import AttendanceEntry, Course, Enrollment
+from .models import AttendanceEntry, Course, Enrollment, Notification
 
 
 class AuthorizationError(PermissionError):
@@ -77,6 +78,31 @@ class ProfessorService:
         enrollment.attendance.sort(key=lambda entry: entry.session_date)
         self.datastore.upsert_enrollment(enrollment)
         return enrollment
+
+    # ------------------------------------------------------------------
+    # Notification management
+    # ------------------------------------------------------------------
+    def send_notification(self, *, professor_id: str, title: str, message: str) -> Notification:
+        """Create and persist a notification that is broadcast to all students."""
+
+        professor = self.datastore.get_professor(professor_id)
+        if not professor:
+            raise LookupError(f"Professor '{professor_id}' not found")
+
+        if not title.strip():
+            raise ValueError("Notification title cannot be empty")
+        if not message.strip():
+            raise ValueError("Notification message cannot be empty")
+
+        notification = Notification(
+            notification_id=str(uuid4()),
+            title=title.strip(),
+            message=message.strip(),
+            sender_id=professor.professor_id,
+            sent_at=datetime.utcnow(),
+        )
+        self.datastore.upsert_notification(notification)
+        return notification
 
     # ------------------------------------------------------------------
     # Internal utilities
