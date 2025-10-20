@@ -8,15 +8,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="flash-container">
-        {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
-    {% endwith %}
     <header class="hero">
         <h1>Student Location Tracker</h1>
         <p>Detect and store each student's latest location using our open geolocation service.</p>

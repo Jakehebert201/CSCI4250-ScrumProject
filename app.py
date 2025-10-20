@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Mapping, Optional, Tuple
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, render_template, request
 
 from tracker import JSONDataStore, LocationService, ProfessorService, StudentService
 from tracker.location_service import LocationServiceError
@@ -171,30 +171,20 @@ def create_app(data_path: Path | None = None) -> Flask:
         title = request.form.get("title", "")
         message = request.form.get("message", "")
         try:
-            professor_service.send_notification(
-                professor_id=professor_id, title=title, message=message
+            record = location_service.record_location(
+                student_id,
+                ip_address=_client_ip(),
+                coordinates=_extract_coordinates(payload),
             )
-        except LookupError:
-            flash("Unknown professor ID", "error")
-        except ValueError as exc:
-            flash(str(exc), "error")
-        else:
-            flash("Notification sent successfully", "success")
-        return redirect(url_for("notifications"))
-
-    @app.post("/notifications/<notification_id>/read")
-    def mark_notification_read(notification_id: str):
-        student_id = request.form.get("student_id", "").strip()
-        if not student_id:
-            flash("Student ID is required to mark notifications as read", "error")
-            return redirect(url_for("notifications"))
-        try:
-            student_service.mark_notification_read(student_id, notification_id)
-        except (StudentNotFoundError, LookupError):
-            flash("Unable to mark notification as read", "error")
-        else:
-            flash("Notification marked as read", "success")
-        return redirect(url_for("notifications"))
+        except LocationServiceError:
+            return {"error": "Unable to determine your current location."}, 503
+        return {
+            "latitude": record.latitude,
+            "longitude": record.longitude,
+            "city": record.city,
+            "region": record.region,
+            "country": record.country,
+        }
 
     return app
 
