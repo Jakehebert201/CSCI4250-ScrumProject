@@ -42,5 +42,7 @@
       "grade": 3.0,
       "attendance": []
     }
-  ]
+  ],
+  "study_sessions": [],
+  "notifications": []
 }

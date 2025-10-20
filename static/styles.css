@@ -1,0 +1,363 @@
+:root {
+    color-scheme: light dark;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    --accent: #2f77ff;
+    --background: #f5f7fb;
+    --card-bg: #ffffff;
+    --text: #1f2933;
+    --muted: #5f6c7b;
+    --shadow: 0 10px 25px rgba(31, 41, 51, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+}
+
+.hero {
+    text-align: center;
+    padding: 4rem 1.5rem 3rem;
+    background: linear-gradient(135deg, var(--accent), #5f9bff);
+    color: #fff;
+}
+
+.hero h1 {
+    margin-bottom: 0.5rem;
+    font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.hero p {
+    margin: 0 auto 1.5rem;
+    max-width: 36rem;
+}
+
+.cta {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: #fff;
+    color: var(--accent);
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cta-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.cta.secondary {
+    background-color: transparent;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.cta:hover,
+.cta:focus {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+main {
+    padding: 2.5rem 1.5rem 4rem;
+    max-width: 960px;
+    margin: 0 auto;
+    display: grid;
+    gap: 3rem;
+}
+
+section h2 {
+    margin-bottom: 1rem;
+}
+
+.grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.card .value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.showcase {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.showcase ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.flash-container {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: grid;
+    gap: 0.5rem;
+    padding: 1rem;
+}
+
+.flash {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+}
+
+.flash.success {
+    background: rgba(46, 204, 113, 0.15);
+    color: #1e7d4f;
+}
+
+.flash.error {
+    background: rgba(231, 76, 60, 0.15);
+    color: #a6291a;
+}
+
+.report-body {
+    background: #fff;
+}
+
+.report-hero {
+    padding-bottom: 2.5rem;
+}
+
+.report-content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+    display: grid;
+    gap: 2.5rem;
+}
+
+.report-content section {
+    background: var(--card-bg);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    padding: 2rem;
+}
+
+.report-content h2 {
+    margin-top: 0;
+}
+
+.report-card {
+    background: rgba(47, 119, 255, 0.05);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: none;
+    margin-top: 1.5rem;
+}
+
+.report-card + .report-card {
+    margin-top: 1.5rem;
+}
+
+.report-footer {
+    text-align: center;
+    padding: 2rem 1rem 3rem;
+    color: var(--muted);
+}
+
+.session-tools {
+    margin-top: 3rem;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    padding: 2.5rem;
+    display: grid;
+    gap: 1.5rem;
+}
+
+.session-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.form-card {
+    display: grid;
+    gap: 0.75rem;
+    background: rgba(47, 119, 255, 0.04);
+}
+
+.form-card label {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.form-card input,
+.form-card textarea {
+    border: 1px solid rgba(9, 30, 66, 0.15);
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.95rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.session-history table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.session-history th,
+.session-history td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+}
+
+.session-history thead {
+    background: rgba(47, 119, 255, 0.08);
+    font-weight: 700;
+}
+
+.session-history tbody tr:nth-child(even) {
+    background: rgba(9, 30, 66, 0.03);
+}
+
+.notifications-preview {
+    margin-top: 3rem;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    padding: 2.5rem;
+    display: grid;
+    gap: 1.5rem;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+}
+
+.notification-list.full li article {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.notification-list .card {
+    padding: 1.5rem;
+}
+
+.notification-list .small {
+    font-size: 0.85rem;
+}
+
+.cta.tertiary {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid rgba(47, 119, 255, 0.35);
+}
+
+.cta.tertiary:hover {
+    background: rgba(47, 119, 255, 0.08);
+}
+
+.hero.compact {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+}
+
+.notification-center {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.notification-center .card {
+    background: #fff;
+    box-shadow: var(--shadow);
+    border-radius: 1rem;
+    padding: 2rem;
+}
+
+.notification-center .stack {
+    display: grid;
+    gap: 1rem;
+}
+
+.notification-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .notifications-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .notification-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
