@@ -22,8 +22,20 @@ def create_app() -> Flask:
 
     @app.route("/api/location")
     def api_location() -> Any:
-        requested_ip = request.args.get("ip", "").strip()
-        ip_address = _validated_ip(requested_ip) or _client_ip(request)
+        requested_ip = _validated_ip(request.args.get("ip", "").strip())
+        client_ip = _client_ip(request)
+
+        ip_address: Optional[str] = client_ip
+        if requested_ip:
+            if client_ip and requested_ip != client_ip:
+                return (
+                    jsonify({"error": "The provided IP address does not match the client."}),
+                    403,
+                )
+            if not client_ip:
+                # If we cannot determine the client IP we ignore the parameter to avoid abuse.
+                ip_address = None
+
         lookup_ip = ip_address or "json"
         data = _lookup_location(lookup_ip)
         if ip_address and data.get("ip") is None:
