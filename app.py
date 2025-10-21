@@ -10,7 +10,8 @@ import urllib.request
 from flask import Flask, jsonify, render_template, request
 
 
-API_URL = "https://ipapi.co/{ip}/json/"
+API_URL_TEMPLATE = "https://ipapi.co/{ip}/json/"
+API_URL_SELF = "https://ipapi.co/json/"
 
 
 def create_app() -> Flask:
@@ -36,7 +37,7 @@ def create_app() -> Flask:
                 # If we cannot determine the client IP we ignore the parameter to avoid abuse.
                 ip_address = None
 
-        lookup_ip = ip_address or "json"
+        lookup_ip = ip_address or None
         data = _lookup_location(lookup_ip)
         if ip_address and data.get("ip") is None:
             data["ip"] = ip_address
@@ -79,9 +80,14 @@ class LocationResult:
         }
 
 
-def _lookup_location(ip: str) -> Dict[str, Any]:
+def _lookup_location(ip: Optional[str]) -> Dict[str, Any]:
     try:
-        with urllib.request.urlopen(API_URL.format(ip=ip), timeout=5) as response:
+        if ip:
+            url = API_URL_TEMPLATE.format(ip=ip)
+        else:
+            url = API_URL_SELF
+
+        with urllib.request.urlopen(url, timeout=5) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except Exception:
         return {"error": "Unable to determine location"}
