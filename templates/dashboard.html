@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Student Location Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="layout">
+    <header class="page-header">
+        <a class="brand" href="{{ url_for('landing_page') }}">Student Location Tracker</a>
+        <nav class="page-nav">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('landing_page') }}">Log Out</a>
+        </nav>
+    </header>
+    <main class="dashboard">
+        <section class="dashboard__panel">
+            <h1>Welcome back!</h1>
+            <p class="dashboard__subtitle">Your current location appears on the map below. Share updates with campus safety as needed.</p>
+            <div class="dashboard__status">
+                <div>
+                    <span class="status__label">Latitude:</span>
+                    <span id="latitude" class="status__value">--</span>
+                </div>
+                <div>
+                    <span class="status__label">Longitude:</span>
+                    <span id="longitude" class="status__value">--</span>
+                </div>
+                <div>
+                    <span class="status__label">Accuracy:</span>
+                    <span id="accuracy" class="status__value">--</span>
+                </div>
+                <div>
+                    <span class="status__label">Last Updated:</span>
+                    <span id="timestamp" class="status__value">Waiting...</span>
+                </div>
+            </div>
+            <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing your current location"></div>
+            <p id="location-message" class="dashboard__message">Requesting location access...</p>
+        </section>
+    </main>
+    <footer class="footer">
+        <small>&copy; 2025 Student Tracker. Built with Flask.</small>
+    </footer>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

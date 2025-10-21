@@ -13,8 +13,13 @@ def landing_page():
 def login():
     if request.method == "POST":
         # Placeholder redirect until authentication is implemented.
-        return redirect(url_for("landing_page"))
+        return redirect(url_for("dashboard"))
     return render_template("login.html")
+
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
 
 
 if __name__ == "__main__":
