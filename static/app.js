@@ -6,6 +6,26 @@ const mapContainer = document.getElementById("map");
 let mapInstance;
 let mapMarker;
 
+function ensureMap() {
+  if (!mapContainer || typeof L === "undefined") {
+    return;
+  }
+
+  if (!mapInstance) {
+    mapInstance = L.map("map", { zoomControl: false }).setView([0, 0], 2);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution:
+        "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+    }).addTo(mapInstance);
+  }
+
+  mapContainer.hidden = false;
+  mapInstance.invalidateSize();
+}
+
+ensureMap();
+
 function updateField(id, value) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -17,28 +37,10 @@ async function fetchLocation() {
   button.textContent = "Loading...";
   errorBox.hidden = true;
   resultCard.hidden = true;
-  hideMap();
+  ensureMap();
 
   try {
-    let clientIp = "";
-    try {
-      const ipResponse = await fetch("https://api.ipify.org?format=json");
-      if (ipResponse.ok) {
-        const ipPayload = await ipResponse.json();
-        if (typeof ipPayload.ip === "string") {
-          const value = ipPayload.ip.trim();
-          if (value) {
-            clientIp = value;
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("Unable to determine client IP from ipify", err);
-    }
-
-    const response = await fetch(
-      clientIp ? `/api/location?ip=${encodeURIComponent(clientIp)}` : "/api/location"
-    );
+    const response = await fetch("/api/location");
     if (!response.ok) {
       throw new Error("Request failed");
     }
@@ -75,19 +77,9 @@ function renderMap(latitude, longitude, city, region, country) {
   if (!mapContainer || typeof L === "undefined") {
     return;
   }
-  mapContainer.hidden = false;
-  mapContainer.setAttribute("aria-hidden", "false");
-
+  ensureMap();
   const coordinates = [latitude, longitude];
-  if (!mapInstance) {
-    mapInstance = L.map("map", { zoomControl: false }).setView(coordinates, 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
-    }).addTo(mapInstance);
-  } else {
-    mapInstance.setView(coordinates, 12);
-  }
+  mapInstance.setView(coordinates, 12);
 
   const locationLabel = [city, region, country].filter(Boolean).join(", ") || "You are here";
   if (!mapMarker) {
@@ -95,11 +87,4 @@ function renderMap(latitude, longitude, city, region, country) {
   }
   mapMarker.setLatLng(coordinates).bindPopup(locationLabel).openPopup();
   mapInstance.invalidateSize();
-}
-
-function hideMap() {
-  if (mapContainer) {
-    mapContainer.hidden = true;
-    mapContainer.setAttribute("aria-hidden", "true");
-  }
 }
