@@ -5,7 +5,6 @@ const mapContainer = document.getElementById("map");
 
 let mapInstance;
 let mapMarker;
-let fallbackFrame;
 
 function updateField(id, value) {
   const el = document.getElementById(id);
@@ -73,62 +72,34 @@ async function fetchLocation() {
 button?.addEventListener("click", fetchLocation);
 
 function renderMap(latitude, longitude, city, region, country) {
-  if (!mapContainer) {
+  if (!mapContainer || typeof L === "undefined") {
     return;
   }
   mapContainer.hidden = false;
   mapContainer.setAttribute("aria-hidden", "false");
 
   const coordinates = [latitude, longitude];
-
-  if (typeof L !== "undefined") {
-    if (fallbackFrame) {
-      fallbackFrame.remove();
-      fallbackFrame = undefined;
-    }
-
-    if (!mapInstance) {
-      mapInstance = L.map("map", { zoomControl: false }).setView(coordinates, 12);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        attribution:
-          "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
-      }).addTo(mapInstance);
-    } else {
-      mapInstance.setView(coordinates, 12);
-    }
-
-    const locationLabel = [city, region, country].filter(Boolean).join(", ") || "You are here";
-    if (!mapMarker) {
-      mapMarker = L.marker(coordinates).addTo(mapInstance);
-    }
-    mapMarker.setLatLng(coordinates).bindPopup(locationLabel).openPopup();
-    requestAnimationFrame(() => mapInstance.invalidateSize());
-    return;
+  if (!mapInstance) {
+    mapInstance = L.map("map", { zoomControl: false }).setView(coordinates, 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+    }).addTo(mapInstance);
+  } else {
+    mapInstance.setView(coordinates, 12);
   }
 
-  if (!fallbackFrame) {
-    fallbackFrame = document.createElement("iframe");
-    fallbackFrame.className = "map-frame";
-    fallbackFrame.setAttribute("title", "Approximate location map");
-    fallbackFrame.setAttribute("loading", "lazy");
-    mapContainer.appendChild(fallbackFrame);
+  const locationLabel = [city, region, country].filter(Boolean).join(", ") || "You are here";
+  if (!mapMarker) {
+    mapMarker = L.marker(coordinates).addTo(mapInstance);
   }
-
-  const delta = 0.1;
-  const bounds = [longitude - delta, latitude - delta, longitude + delta, latitude + delta]
-    .map((value) => value.toFixed(4))
-    .join(",");
-  const marker = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
-  fallbackFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bounds}&layer=mapnik&marker=${marker}`;
+  mapMarker.setLatLng(coordinates).bindPopup(locationLabel).openPopup();
+  mapInstance.invalidateSize();
 }
 
 function hideMap() {
   if (mapContainer) {
     mapContainer.hidden = true;
     mapContainer.setAttribute("aria-hidden", "true");
-    if (fallbackFrame) {
-      fallbackFrame.removeAttribute("src");
-    }
   }
 }
