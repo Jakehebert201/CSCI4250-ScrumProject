@@ -22,7 +22,8 @@ def create_app() -> Flask:
 
     @app.route("/api/location")
     def api_location() -> Any:
-        ip_address = _client_ip(request)
+        requested_ip = request.args.get("ip", "").strip()
+        ip_address = _validated_ip(requested_ip) or _client_ip(request)
         lookup_ip = ip_address or "json"
         data = _lookup_location(lookup_ip)
         if ip_address and data.get("ip") is None:
@@ -80,6 +81,10 @@ def _lookup_location(ip: str) -> Dict[str, Any]:
 def _client_ip(req: Any) -> Optional[str]:
     header = req.headers.get("X-Forwarded-For", "").split(",")[0].strip()
     candidate = header or req.remote_addr or ""
+    return _validated_ip(candidate)
+
+
+def _validated_ip(candidate: str) -> Optional[str]:
     try:
         ipaddress.ip_address(candidate)
     except ValueError:
