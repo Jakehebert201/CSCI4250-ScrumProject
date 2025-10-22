@@ -7,49 +7,172 @@
 </head>
 <body class="layout">
   <nav class="site-nav">
-    <a class="nav__item" href="{{ url_for('dashboard') }}">Dashboard</a>
+    {% if user_type == 'student' %}
+      <a class="nav__item" href="{{ url_for('student_dashboard') }}">Dashboard</a>
+    {% elif user_type == 'professor' %}
+      <a class="nav__item" href="{{ url_for('professor_dashboard') }}">Dashboard</a>
+    {% else %}
+      <a class="nav__item" href="{{ url_for('dashboard') }}">Dashboard</a>
+    {% endif %}
     <a class="nav__item nav__item--active" href="{{ url_for('database') }}">Database</a>
     <a class="nav__item" href="{{ url_for('logout') }}">Logout</a>
   </nav>
 
   <main class="panel">
-    <h1>Database — Users</h1>
-    <table class="table">
-      <thead>
-        <tr><th>ID</th><th>Username</th><th>Email</th></tr>
-      </thead>
-      <tbody>
-        {% for u in users %}
-        <tr>
-          <td>{{ u.id }}</td>
-          <td>{{ u.username }}</td>
-          <td>{{ u.email }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="3">No users found</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% if user_type == 'professor' %}
+      <h1>Database — All Data</h1>
+      
+      <h2>Students</h2>
+      <table class="table">
+        <thead>
+          <tr><th>ID</th><th>Student ID</th><th>Name</th><th>Email</th><th>Major</th><th>Year</th><th>Last Seen</th></tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+          <tr>
+            <td>{{ student.id }}</td>
+            <td>{{ student.student_id }}</td>
+            <td>{{ student.full_name }}</td>
+            <td>{{ student.email }}</td>
+            <td>{{ student.major or "-" }}</td>
+            <td>{{ student.year or "-" }}</td>
+            <td>{{ student.last_seen|format_dt if student.last_seen else "-" }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7">No students found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
 
-    <h2>Recent Locations</h2>
+      <h2>Professors</h2>
+      <table class="table">
+        <thead>
+          <tr><th>ID</th><th>Employee ID</th><th>Name</th><th>Email</th><th>Department</th><th>Title</th></tr>
+        </thead>
+        <tbody>
+          {% for professor in professors %}
+          <tr>
+            <td>{{ professor.id }}</td>
+            <td>{{ professor.employee_id }}</td>
+            <td>{{ professor.full_name }}</td>
+            <td>{{ professor.email }}</td>
+            <td>{{ professor.department or "-" }}</td>
+            <td>{{ professor.title or "-" }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">No professors found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h2>Classes</h2>
+      <table class="table">
+        <thead>
+          <tr><th>ID</th><th>Course</th><th>Professor</th><th>Semester</th><th>Room</th><th>Schedule</th></tr>
+        </thead>
+        <tbody>
+          {% for class in classes %}
+          <tr>
+            <td>{{ class.id }}</td>
+            <td>{{ class.full_course_name }}</td>
+            <td>{{ class.professor.full_name }}</td>
+            <td>{{ class.semester }} {{ class.year }}</td>
+            <td>{{ class.room or "-" }}</td>
+            <td>{{ class.schedule or "-" }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">No classes found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% elif user_type == 'student' %}
+      <h1>My Data</h1>
+      
+      <h2>My Information</h2>
+      <table class="table">
+        <thead>
+          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Major</th><th>Year</th><th>Last Location Update</th></tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+          <tr>
+            <td>{{ student.student_id }}</td>
+            <td>{{ student.full_name }}</td>
+            <td>{{ student.email }}</td>
+            <td>{{ student.major or "-" }}</td>
+            <td>{{ student.year or "-" }}</td>
+            <td>{{ student.last_seen|format_dt if student.last_seen else "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% else %}
+      <h1>Database — Legacy Users</h1>
+      <table class="table">
+        <thead>
+          <tr><th>ID</th><th>Username</th><th>Email</th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3">No users found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <h2>{% if user_type == 'student' %}My {% else %}Recent {% endif %}Location History</h2>
     <table class="table">
       <thead>
-        <tr><th>#</th><th>User</th><th>Latitude</th><th>Longitude</th><th>City</th><th>Accuracy (m)</th><th>Recorded</th></tr>
+        <tr>
+          <th>#</th>
+          {% if user_type != 'student' %}<th>Student</th>{% endif %}
+          <th>Latitude</th><th>Longitude</th><th>City</th><th>Accuracy (m)</th>
+          {% if user_type == 'professor' %}<th>Class</th><th>Notes</th>{% endif %}
+          <th>Recorded</th>
+        </tr>
       </thead>
       <tbody>
-        {% for loc in locations %}
-        <tr>
-          <td>{{ loop.index }}</td>
-          <td>{{ loc.user.username if loc.user else loc.user_id }}</td>
-          <td>{{ "%.6f"|format(loc.lat) }}</td>
-          <td>{{ "%.6f"|format(loc.lng) }}</td>
-          <td>{{ loc.city or "-" }}</td>
-          <td>{{ loc.accuracy or "-" }}</td>
-          <td>{{ loc.created_at|format_dt }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="7">No locations recorded</td></tr>
-        {% endfor %}
+        {% if student_locations %}
+          {% for loc in student_locations %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            {% if user_type != 'student' %}<td>{{ loc.student.full_name if loc.student else loc.student_id }}</td>{% endif %}
+            <td>{{ "%.6f"|format(loc.lat) }}</td>
+            <td>{{ "%.6f"|format(loc.lng) }}</td>
+            <td>{{ loc.city or "-" }}</td>
+            <td>{{ loc.accuracy or "-" }}</td>
+            {% if user_type == 'professor' %}
+              <td>{{ loc.class_attended.full_course_name if loc.class_attended else "-" }}</td>
+              <td>{{ loc.notes or "-" }}</td>
+            {% endif %}
+            <td>{{ loc.created_at|format_dt }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{% if user_type == 'professor' %}8{% elif user_type == 'student' %}6{% else %}7{% endif %}">No locations recorded</td></tr>
+          {% endfor %}
+        {% elif locations %}
+          {% for loc in locations %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ loc.user.username if loc.user else loc.user_id }}</td>
+            <td>{{ "%.6f"|format(loc.lat) }}</td>
+            <td>{{ "%.6f"|format(loc.lng) }}</td>
+            <td>{{ loc.city or "-" }}</td>
+            <td>{{ loc.accuracy or "-" }}</td>
+            <td>{{ loc.created_at|format_dt }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7">No locations recorded</td></tr>
+          {% endfor %}
+        {% endif %}
       </tbody>
     </table>
   </main>

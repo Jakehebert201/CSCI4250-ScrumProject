@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor Dashboard | Student Location Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="layout">
+    <header class="page-header">
+        <a class="brand" href="{{ url_for('landing_page') }}">Student Location Tracker</a>
+        <nav class="page-nav">
+            <a href="{{ url_for('professor_dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
+            <a href="{{ url_for('database') }}" class="nav__item">Database</a>
+            <a href="{{ url_for('logout') }}" class="nav__item">Log Out</a>
+        </nav>
+    </header>
+    <main class="dashboard">
+        <section class="dashboard__panel">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                {% if professor.profile_picture %}
+                    <img src="{{ professor.profile_picture }}" alt="Profile" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--primary);">
+                {% endif %}
+                <div>
+                    <h1 style="margin: 0;">Welcome, {{ professor.title or 'Professor' }} {{ full_name }}!</h1>
+                    {% if professor.is_oauth_user %}
+                        <span style="background: var(--accent); color: var(--text); padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Google Account</span>
+                    {% endif %}
+                </div>
+            </div>
+            <p class="dashboard__subtitle">Monitor student locations and manage your classes from this dashboard.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                <div>
+                    <strong>Employee ID:</strong> {{ professor.employee_id or 'Not set' }}<br>
+                    <strong>Department:</strong> {{ professor.department or 'Not specified' }}<br>
+                    <strong>Title:</strong> {{ professor.title or 'Not specified' }}
+                </div>
+                <div>
+                    <strong>Email:</strong> {{ professor.email }}<br>
+                    <strong>Member since:</strong> {{ professor.created_at.strftime('%B %Y') }}<br>
+                    <strong>Account type:</strong> {{ 'OAuth' if professor.is_oauth_user else 'Traditional' }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+                <div class="card">
+                    <h3>Your Classes</h3>
+                    {% if classes %}
+                        <ul style="list-style: none; padding: 0;">
+                            {% for class in classes %}
+                            <li style="margin: 0.5rem 0; padding: 0.5rem; background: var(--muted); border-radius: 8px;">
+                                <strong>{{ class.course_code }}</strong>: {{ class.course_name }}<br>
+                                <small>{{ class.semester }} {{ class.year }} | {{ class.room or 'Room TBD' }}</small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No classes assigned yet.</p>
+                    {% endif %}
+                </div>
+
+                <div class="card">
+                    <h3>Recent Student Activity</h3>
+                    {% if recent_locations %}
+                        <ul style="list-style: none; padding: 0; max-height: 300px; overflow-y: auto;">
+                            {% for location in recent_locations[:10] %}
+                            <li style="margin: 0.5rem 0; padding: 0.5rem; background: var(--muted); border-radius: 8px; font-size: 0.9rem;">
+                                <strong>{{ location.student.full_name }}</strong><br>
+                                <small>{{ location.city or 'Unknown location' }} - {{ location.created_at|format_dt }}</small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No recent student activity.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing recent student locations" style="margin-top: 2rem;"></div>
+            <p class="dashboard__message">Map shows recent student check-ins across campus.</p>
+        </section>
+    </main>
+    <footer class="footer">
+        <small>&copy; 2025 Student Tracker. Built with Flask.</small>
+    </footer>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const mapElement = document.getElementById("location-map");
+        
+        if (!mapElement || typeof L === "undefined") {
+            return;
+        }
+
+        const map = L.map(mapElement).setView([39.8283, -98.5795], 4); // Center of US
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "© OpenStreetMap contributors",
+        }).addTo(map);
+
+        // Add markers for recent student locations
+        {% if recent_locations %}
+        const locations = [
+            {% for location in recent_locations[:20] %}
+            {
+                lat: {{ location.lat }},
+                lng: {{ location.lng }},
+                student: "{{ location.student.full_name }}",
+                city: "{{ location.city or 'Unknown' }}",
+                time: "{{ location.created_at|format_dt }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        locations.forEach(loc => {
+            L.marker([loc.lat, loc.lng])
+                .addTo(map)
+                .bindPopup(`<strong>${loc.student}</strong><br>${loc.city}<br><small>${loc.time}</small>`);
+        });
+
+        if (locations.length > 0) {
+            const group = new L.featureGroup(locations.map(loc => L.marker([loc.lat, loc.lng])));
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+        {% endif %}
+    });
+    </script>
+</body>
+</html>

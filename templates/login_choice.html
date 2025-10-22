@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Student Location Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="layout">
+    <main class="login">
+        <section class="login__panel">
+            <h1>Choose Login Type</h1>
+            <p class="login__subtitle">Select your account type to continue.</p>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div style="margin: 1rem 0;">
+                        {% for message in messages %}
+                            <p style="color: green; margin: 0.5rem 0;">{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div style="display: grid; gap: 1rem; margin-top: 2rem;">
+                {% if oauth_enabled %}
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--primary);">Quick Sign In with Google</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <a href="{{ url_for('oauth_login', user_type='student') }}" class="btn btn--primary" style="text-align: center; padding: 1rem;">
+                            🎓 Student (Google)
+                        </a>
+                        <a href="{{ url_for('oauth_login', user_type='professor') }}" class="btn btn--primary" style="text-align: center; padding: 1rem;">
+                            👨‍🏫 Professor (Google)
+                        </a>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin: 1rem 0;">
+                    <span style="color: var(--muted); font-size: 0.9rem;">or use traditional login</span>
+                </div>
+                {% endif %}
+                
+                <a href="{{ url_for('login_student') }}" class="btn btn--{% if oauth_enabled %}secondary{% else %}primary{% endif %}" style="text-align: center; padding: 1rem;">
+                    🎓 Student Login{% if not oauth_enabled %} (Email/Password){% endif %}
+                </a>
+                <a href="{{ url_for('login_professor') }}" class="btn btn--{% if oauth_enabled %}secondary{% else %}primary{% endif %}" style="text-align: center; padding: 1rem;">
+                    👨‍🏫 Professor Login{% if not oauth_enabled %} (Email/Password){% endif %}
+                </a>
+            </div>
+
+            <p class="login__note" style="margin-top: 2rem;">
+                Don't have an account? 
+                <a href="{{ url_for('register_student') }}">Register as Student</a> | 
+                <a href="{{ url_for('register_professor') }}">Register as Professor</a>
+            </p>
+        </section>
+    </main>
+    <footer class="footer">
+        <small>&copy; 2025 Student Tracker. Built with Flask.</small>
+    </footer>
+</body>
+</html>

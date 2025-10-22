@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard | Student Location Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="layout">
+    <header class="page-header">
+        <a class="brand" href="{{ url_for('landing_page') }}">Student Location Tracker</a>
+        <nav class="page-nav">
+            <a href="{{ url_for('student_dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
+            <a href="{{ url_for('database') }}" class="nav__item">My Data</a>
+            <a href="{{ url_for('logout') }}" class="nav__item">Log Out</a>
+        </nav>
+    </header>
+    <main class="dashboard">
+        <section class="dashboard__panel">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                {% if student.profile_picture %}
+                    <img src="{{ student.profile_picture }}" alt="Profile" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--primary);">
+                {% endif %}
+                <div>
+                    <h1 style="margin: 0;">Welcome back, {{ full_name }}!</h1>
+                    {% if student.is_oauth_user %}
+                        <span style="background: var(--accent); color: var(--text); padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Google Account</span>
+                    {% endif %}
+                </div>
+            </div>
+            <p class="dashboard__subtitle">Your current location appears on the map below. Share updates with campus safety as needed.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                <div>
+                    <strong>Student ID:</strong> {{ student.student_id or 'Not set' }}<br>
+                    <strong>Major:</strong> {{ student.major or 'Not specified' }}<br>
+                    <strong>Year:</strong> {{ student.year or 'Not specified' }}
+                </div>
+                <div>
+                    <strong>Email:</strong> {{ student.email }}<br>
+                    <strong>Member since:</strong> {{ student.created_at.strftime('%B %Y') }}<br>
+                    <strong>Account type:</strong> {{ 'OAuth' if student.is_oauth_user else 'Traditional' }}
+                </div>
+            </div>
+
+            <div class="dashboard__status">
+                <div>
+                    <span class="status__label">Latitude:</span>
+                    <span id="latitude" class="status__value">--</span>
+                </div>
+                <div>
+                    <span class="status__label">Longitude:</span>
+                    <span id="longitude" class="status__value">--</span>
+                </div>
+                <div>
+                    <span class="status__label">Accuracy:</span>
+                    <span id="accuracy" class="status__value">--</span>
+                </div>
+                <div>
+                    <span class="status__label">Last Updated:</span>
+                    <span id="timestamp" class="status__value">Waiting...</span>
+                </div>
+            </div>
+            <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing your current location"></div>
+            <p id="location-message" class="dashboard__message">Requesting location access...</p>
+        </section>
+    </main>
+    <footer class="footer">
+        <small>&copy; 2025 Student Tracker. Built with Flask.</small>
+    </footer>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script>
+    // Send location to server for students
+    function postLocation(lat, lng, accuracy) {
+      fetch("{{ url_for('update_location') }}", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat: lat, lng: lng, accuracy: accuracy })
+      }).catch(err => console.debug("location post failed", err));
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        var acc = pos.coords.accuracy;
+        
+        var elLat = document.getElementById('latitude');
+        var elLng = document.getElementById('longitude');
+        var elAcc = document.getElementById('accuracy');
+        if (elLat) elLat.textContent = lat.toFixed(6);
+        if (elLng) elLng.textContent = lng.toFixed(6);
+        if (elAcc) elAcc.textContent = Math.round(acc) + " m";
+
+        postLocation(lat, lng, acc);
+      }, function(err) {
+        console.debug("geolocation error", err);
+      });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login | Student Location Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="layout">
+    <main class="login">
+        <section class="login__panel">
+            <h1>Student Sign In</h1>
+            <p class="login__subtitle">Access your student dashboard to share your location.</p>
+            {% if oauth_enabled %}
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <a href="{{ url_for('oauth_login', user_type='student') }}" class="btn btn--primary" style="width: 100%; padding: 1rem; margin-bottom: 1rem;">
+                    🚀 Sign in with Google
+                </a>
+                <div style="margin: 1rem 0; color: var(--muted);">or</div>
+            </div>
+            {% endif %}
+
+            <form class="login__form" method="post" action="{{ url_for('login_student') }}">
+                <label for="identifier">Student ID, Email, or Username</label>
+                <input id="identifier" type="text" name="username" placeholder="12345678, name@example.edu, or username" required>
+
+                <label for="password">Password</label>
+                <input id="password" type="password" name="password" placeholder="Enter your password" required>
+
+                {% if error %}
+                  <p style="color:red; margin-top:0.5rem;">{{ error }}</p>
+                {% endif %}
+
+                <button type="submit" class="btn btn--{% if oauth_enabled %}secondary{% else %}primary{% endif %}">Login{% if oauth_enabled %} with Password{% endif %}</button>
+            </form>
+
+            <p class="login__signup">
+              New student?
+              <a class="btn btn--primary" href="{{ url_for('register_student') }}">Create student account</a>
+            </p>
+
+            <p class="login__note">
+                <a href="{{ url_for('login') }}">← Back to login options</a> | 
+                <a href="{{ url_for('login_professor') }}">Professor login</a>
+            </p>
+        </section>
+    </main>
+    <footer class="footer">
+        <small>&copy; 2025 Student Tracker. Built with Flask.</small>
+    </footer>
+</body>
+</html>

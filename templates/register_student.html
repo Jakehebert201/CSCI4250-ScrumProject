@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="utf-8">
+  <title>Student Registration - Student Tracker</title>
+</head>
+<body class="layout">
+  <main class="login">
+    <section class="login__panel">
+      <h1>Create Student Account</h1>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <ul>
+            {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+
+      <form class="login__form" method="post" action="{{ url_for('register_student') }}">
+        <label for="student_id">Student ID *</label>
+        <input id="student_id" name="student_id" placeholder="12345678" required>
+
+        <label for="username">Username *</label>
+        <input id="username" name="username" placeholder="your_username" required>
+
+        <label for="email">Email *</label>
+        <input id="email" type="email" name="email" placeholder="name@university.edu" required>
+
+        <label for="first_name">First Name *</label>
+        <input id="first_name" name="first_name" placeholder="John" required>
+
+        <label for="last_name">Last Name *</label>
+        <input id="last_name" name="last_name" placeholder="Doe" required>
+
+        <label for="major">Major</label>
+        <input id="major" name="major" placeholder="Computer Science">
+
+        <label for="year">Year</label>
+        <select id="year" name="year">
+          <option value="">Select Year</option>
+          <option value="Freshman">Freshman</option>
+          <option value="Sophomore">Sophomore</option>
+          <option value="Junior">Junior</option>
+          <option value="Senior">Senior</option>
+          <option value="Graduate">Graduate</option>
+        </select>
+
+        <label for="password">Password *</label>
+        <input id="password" type="password" name="password" placeholder="Choose a password" required>
+
+        <button type="submit" class="btn btn--primary">Create Student Account</button>
+      </form>
+
+      <p class="login__signup">
+        Already have an account?
+        <a class="btn btn--secondary" href="{{ url_for('login_student') }}">Sign in</a>
+      </p>
+
+      {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+    </section>
+  </main>
+</body>
+</html>

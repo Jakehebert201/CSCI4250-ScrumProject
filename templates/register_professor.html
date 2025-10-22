@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="utf-8">
+  <title>Professor Registration - Student Tracker</title>
+</head>
+<body class="layout">
+  <main class="login">
+    <section class="login__panel">
+      <h1>Create Professor Account</h1>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <ul>
+            {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+
+      <form class="login__form" method="post" action="{{ url_for('register_professor') }}">
+        <label for="employee_id">Employee ID *</label>
+        <input id="employee_id" name="employee_id" placeholder="EMP123456" required>
+
+        <label for="username">Username *</label>
+        <input id="username" name="username" placeholder="your_username" required>
+
+        <label for="email">Email *</label>
+        <input id="email" type="email" name="email" placeholder="name@university.edu" required>
+
+        <label for="first_name">First Name *</label>
+        <input id="first_name" name="first_name" placeholder="Jane" required>
+
+        <label for="last_name">Last Name *</label>
+        <input id="last_name" name="last_name" placeholder="Smith" required>
+
+        <label for="department">Department</label>
+        <input id="department" name="department" placeholder="Computer Science">
+
+        <label for="title">Title</label>
+        <select id="title" name="title">
+          <option value="">Select Title</option>
+          <option value="Professor">Professor</option>
+          <option value="Associate Professor">Associate Professor</option>
+          <option value="Assistant Professor">Assistant Professor</option>
+          <option value="Lecturer">Lecturer</option>
+          <option value="Instructor">Instructor</option>
+        </select>
+
+        <label for="password">Password *</label>
+        <input id="password" type="password" name="password" placeholder="Choose a password" required>
+
+        <button type="submit" class="btn btn--primary">Create Professor Account</button>
+      </form>
+
+      <p class="login__signup">
+        Already have an account?
+        <a class="btn btn--secondary" href="{{ url_for('login_professor') }}">Sign in</a>
+      </p>
+
+      {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+    </section>
+  </main>
+</body>
+</html>
