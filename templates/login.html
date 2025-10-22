@@ -7,22 +7,31 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="layout">
-    <header class="page-header">
-        <a class="brand" href="{{ url_for('landing_page') }}">Student Location Tracker</a>
-    </header>
     <main class="login">
         <section class="login__panel">
             <h1>Sign In</h1>
             <p class="login__subtitle">Access the dashboard to track student locations.</p>
-            <form class="login__form" method="post">
-                <label for="email">Email</label>
-                <input id="email" type="email" name="email" placeholder="name@example.edu" required>
+            <form class="login__form" method="post" action="{{ url_for('login') }}">
+                <label for="identifier">Email or Username</label>
+                <!-- use text input named "username" so server code will accept either -->
+                <input id="identifier" type="text" name="username" placeholder="name@example.edu or username" required>
 
                 <label for="password">Password</label>
                 <input id="password" type="password" name="password" placeholder="Enter your password" required>
 
-                <button type="submit">Login</button>
+                {% if error %}
+                  <p style="color:red; margin-top:0.5rem;">{{ error }}</p>
+                {% endif %}
+
+                <button type="submit" class="btn btn--primary">Login</button>
             </form>
+
+            <!-- create account button only -->
+            <p class="login__signup">
+              New here?
+              <a class="btn btn--primary" href="{{ url_for('register') }}">Create an account</a>
+            </p>
+
             <p class="login__note">Need access? Contact your administrator.</p>
         </section>
     </main>

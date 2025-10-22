@@ -268,3 +268,37 @@ main {
     color: #c0392b;
     font-weight: 600;
 }
+
+.btn,
+button.btn,
+a.btn {
+  display: inline-block;
+  padding: 0.6rem 1.1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* primary theme used by Login and Create account */
+.btn--primary,
+button.btn--primary,
+a.btn--primary {
+  background-color: #1f6feb;
+  color: #ffffff;
+}
+
+.btn--primary:hover,
+button.btn--primary:hover,
+a.btn--primary:hover {
+  background-color: #165fd1;
+}
+
+.btn--secondary { background: #6b7280; }
+.btn--secondary:hover { background: #4b5563; }
+
+/* ensure anchor elements look like buttons */
+a.btn { display: inline-block; }

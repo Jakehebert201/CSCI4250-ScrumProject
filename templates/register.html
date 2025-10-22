@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="utf-8">
+  <title>Register - Student Tracker</title>
+</head>
+<body class="layout">
+  <main class="login">
+    <section class="login__panel">
+      <h1>Create account</h1>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <ul>
+            {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+
+      <form class="login__form" method="post" action="{{ url_for('register') }}">
+        <label for="username">Username</label>
+        <input id="username" name="username" placeholder="your username" required>
+
+        <label for="email">Email (required)</label>
+        <input id="email" type="email" name="email" placeholder="name@example.edu" required>
+
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password" placeholder="Choose a password" required>
+
+        <button type="submit" class="btn btn--primary">Create account</button>
+      </form>
+
+      <p class="login__signup">
+        Already have an account?
+        <a class="btn btn--secondary" href="{{ url_for('login') }}">Sign in</a>
+      </p>
+
+      {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+    </section>
+  </main>
+</body>
+</html>

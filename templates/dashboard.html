@@ -11,13 +11,14 @@
     <header class="page-header">
         <a class="brand" href="{{ url_for('landing_page') }}">Student Location Tracker</a>
         <nav class="page-nav">
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('landing_page') }}">Log Out</a>
+            <a href="{{ url_for('dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
+            <a href="{{ url_for('database') }}" class="nav__item">Database</a>
+            <a href="{{ url_for('logout') }}" class="nav__item">Log Out</a>
         </nav>
     </header>
     <main class="dashboard">
         <section class="dashboard__panel">
-            <h1>Welcome back!</h1>
+            <h1>Welcome back, {{ username }}!</h1>
             <p class="dashboard__subtitle">Your current location appears on the map below. Share updates with campus safety as needed.</p>
             <div class="dashboard__status">
                 <div>
@@ -46,5 +47,37 @@
     </footer>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <!-- keep your existing map/JS; below we add a small location POSTer -->
+    <script>
+    // send one-shot current position to server (sends session cookie with credentials)
+    function postLocation(lat, lng, accuracy) {
+      fetch("{{ url_for('update_location') }}", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat: lat, lng: lng, accuracy: accuracy })
+      }).catch(err => console.debug("location post failed", err));
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        var acc = pos.coords.accuracy;
+        // update UI if your existing JS expects these elements:
+        var elLat = document.getElementById('latitude');
+        var elLng = document.getElementById('longitude');
+        var elAcc = document.getElementById('accuracy');
+        if (elLat) elLat.textContent = lat.toFixed(6);
+        if (elLng) elLng.textContent = lng.toFixed(6);
+        if (elAcc) elAcc.textContent = Math.round(acc) + " m";
+
+        // send to server
+        postLocation(lat, lng, acc);
+      }, function(err) {
+        console.debug("geolocation error", err);
+      });
+    }
+    </script>
 </body>
 </html>
