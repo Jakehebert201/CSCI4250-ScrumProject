@@ -1,0 +1,23 @@
+Recent Additions (last few days)
+Generated on: Wed Oct 22 13:15:17 EDT 2025
+
+1. Commit 30dced7a5cce7a38cf5bd61ae0da6b8143dd047c — Tue Oct 21 22:31:58 2025 (jakehebert201)
+   - Expanded `README.md` with setup instructions, feature overview, and usage guidance to align contributors.
+
+2. Commit bdb95bf609e12d52e00d18519b913de795c21e78 — Tue Oct 21 21:09:57 2025 (Deep)
+   - Added persistent database storage in `app.py` and wired it into user flows.
+   - Updated `requirements.txt` with the dependencies needed for database integration.
+   - Introduced new styling in `static/css/style.css` and refreshed several templates to support the database-driven UI.
+
+3. Commit b6aa746b7b4a6e9692e29de945e7776fa2de5ea9 — Tue Oct 21 13:06:32 2025 (jakehebert201)
+   - Improved geolocation accuracy handling in `app.py`.
+   - Added `static/js/dashboard.js` alongside significant CSS enhancements to support live dashboard features.
+   - Extended `templates/dashboard.html` to surface the new geolocation data.
+
+4. Commit cd2f2bb04f4efe2fa986f911433631426d4f7e87 — Tue Oct 21 12:10:49 2025 (jakehebert201)
+   - Rebooted the project structure around a simpler Flask app with login support.
+   - Added new static assets and templates for the login flow while removing legacy tracker modules and tests that no longer fit the simplified architecture.
+
+Notes:
+- Scope covers commits since Oct 21, 2025 (inclusive). Update the window if additional days should be included.
+- Update the generation timestamp if this document is regenerated later.
