@@ -1,16 +1,24 @@
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
+from jinja2 import TemplateNotFound
+from pathlib import Path
+import json
 import os
 import requests
 import re
 
 # Load environment variables
 load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent
+TEMPLATES_DIR = BASE_DIR / "templates"
+PAGES_DIR = TEMPLATES_DIR / "pages"
+PAGES_MANIFEST_PATH = BASE_DIR / "pages.json"
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
@@ -199,10 +207,71 @@ def format_dt(dt):
 app.jinja_env.filters["format_dt"] = format_dt
 
 
+def _load_pages_manifest():
+    """Load optional JSON manifest once at startup."""
+    try:
+        if not PAGES_MANIFEST_PATH.exists():
+            return []
+        data = json.loads(PAGES_MANIFEST_PATH.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            return data
+    except json.JSONDecodeError as exc:
+        app.logger.warning("pages.json is invalid JSON: %s", exc)
+    except OSError as exc:
+        app.logger.warning("Unable to read pages.json: %s", exc)
+    return []
+
+
+PAGES_MANIFEST = _load_pages_manifest()
+
+
+@app.context_processor
+def inject_pages_manifest():
+    """Expose the manifest to any template."""
+    return {"pages_manifest": PAGES_MANIFEST}
+
+
+def _normalize_slug(slug: str) -> str | None:
+    """Strip dangerous path segments and allow nested routes like foo/bar."""
+    if not slug:
+        return None
+    normalized = slug.strip("/")
+    if not normalized:
+        return None
+    candidate = Path(normalized)
+    if any(part in ("", ".", "..") for part in candidate.parts):
+        return None
+    return str(candidate)
+
+
 # ---------------------- ROUTES ---------------------- #
 @app.route("/")
 def landing_page():
     return render_template("index.html")
+
+
+@app.route("/app/<path:slug>/")
+def dynamic_page(slug: str):
+    """Render any template located under templates/pages/<slug>.html."""
+    safe_slug = _normalize_slug(slug)
+    if not safe_slug:
+        abort(404)
+
+    template_relative = f"pages/{safe_slug}.html"
+    candidate_path = (PAGES_DIR / f"{safe_slug}.html").resolve()
+
+    try:
+        candidate_path.relative_to(PAGES_DIR)
+    except ValueError:
+        abort(404)
+
+    if not candidate_path.exists():
+        abort(404)
+
+    try:
+        return render_template(template_relative)
+    except TemplateNotFound:
+        abort(404)
 
 
 @app.route("/register/student", methods=["GET", "POST"])

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Student Location Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=1) }}">
+</head>
+<body class="layout">
+    <header class="page-header">
+        <a class="brand" href="{{ url_for('landing_page') }}">Student Location Tracker</a>
+        <nav class="page-nav" aria-label="Generated pages">
+            {% for page in pages_manifest %}
+                <a href="/app/{{ page.slug }}/" class="nav__item">{{ page.title }}</a>
+            {% else %}
+                <span class="nav__item nav__item--muted">No generated pages yet</span>
+            {% endfor %}
+        </nav>
+    </header>
+    <main class="page">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+        <small>&copy; 2025 Student Tracker. Built with Flask.</small>
+    </footer>
+</body>
+</html>

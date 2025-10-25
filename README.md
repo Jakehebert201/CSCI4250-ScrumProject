@@ -45,6 +45,10 @@ A Flask web application that allows campus staff to monitor student check-ins. A
 ```
 app.py                 # Flask application, models, routes
 templates/             # Jinja2 templates (landing page, auth, dashboard, database view)
+templates/base.html    # Base layout leveraged by generated pages
+templates/pages/       # Drop-in HTML pages rendered by /app/<slug>/
+pages.json             # Manifest that powers the generated navigation
+scripts/new_page.py    # Helper script that scaffolds templates + manifest entries
 static/css/style.css   # Global styling
 static/js/dashboard.js # Front-end geolocation + map logic
 instance/studenttracker.db # SQLite database (created at runtime)
@@ -58,6 +62,24 @@ requirements.txt       # Python dependencies
 - `GET /dashboard` – Authenticated dashboard with real-time map.
 - `POST /update_location` – Receives `{lat, lng, accuracy}` JSON payloads; updates user record and saves a location row.
 - `GET /database` – Displays recent locations and all users (requires login).
+- `GET /app/<slug>/` – Generic renderer for templates in `templates/pages/` (see below).
+
+## Dynamic Page Workflow
+The `/app/<slug>/` route eliminates per-page view functions by rendering whatever HTML file exists under `templates/pages/<slug>.html`.
+
+1. **Routing & safety** – Requests hit `dynamic_page()` in `app.py`, which normalizes the slug, prevents path traversal, confirms the file lives inside `templates/pages/`, and defers to Jinja’s `render_template`. Any missing template yields a 404.
+2. **Manifest-driven navigation** – `pages.json` stores `[{ "slug": "...", "title": "..." }]`. The file is loaded once on app start and injected into every template via `pages_manifest`. `templates/base.html` iterates over the manifest so generated pages automatically appear in the nav. Restart the Flask process after editing the manifest so the in-memory cache is refreshed.
+3. **Scaffolding script** – `scripts/new_page.py` automates everything:
+   ```bash
+   python scripts/new_page.py faculty-dashboard "Faculty Dashboard"
+   ```
+   Steps performed:
+   - Sanitizes the slug (lowercases, strips separators, removes `..`).
+   - Creates `templates/pages/<slug>.html` from a stub that extends `base.html` and includes a timestamp for traceability.
+   - Appends the slug/title pair to `pages.json` (creating the manifest if needed).
+   - Prints the relative paths touched so you can commit the changes.
+4. **Manual edits welcome** – Open the generated HTML file to add cards, tables, or include other partials just like any Jinja template.
+5. **Bulk generation** – Because the script is a thin CLI, you can loop over CSV data (e.g., `for slug title in ...; do python scripts/new_page.py "$slug" "$title"; done`) to seed multiple pages at once.
 
 ## Location Workflow
 1. User logs in and reaches the dashboard.
