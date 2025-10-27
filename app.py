@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 import os
@@ -14,6 +15,39 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
+
+
+class PrefixMiddleware:
+    """Keep Flask aware of a deployment prefix (e.g., /app) when present."""
+
+    def __init__(self, app, default_prefix=""):
+        self.app = app
+        self.default_prefix = default_prefix.rstrip("/") if default_prefix else ""
+
+    def __call__(self, environ, start_response):
+        header_prefix = environ.get("HTTP_X_SCRIPT_NAME") or environ.get("HTTP_X_FORWARDED_PREFIX") or ""
+        active_prefix = header_prefix or self.default_prefix
+        if not active_prefix:
+            return self.app(environ, start_response)
+
+        cleaned_prefix = active_prefix.rstrip("/")
+        path_info = environ.get("PATH_INFO", "")
+
+        if cleaned_prefix and path_info.startswith(cleaned_prefix):
+            environ["SCRIPT_NAME"] = cleaned_prefix
+            environ["PATH_INFO"] = path_info[len(cleaned_prefix):] or "/"
+        else:
+            environ["SCRIPT_NAME"] = cleaned_prefix
+
+        environ.setdefault("HTTP_X_FORWARDED_PREFIX", environ["SCRIPT_NAME"])
+
+        return self.app(environ, start_response)
+
+
+# Honour proxy headers and enforce prefix-aware URL generation (when needed)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+configured_prefix = os.environ.get("APP_URL_PREFIX", "").strip()
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, default_prefix=configured_prefix)
 
 # OAuth Configuration
 app.config['GOOGLE_CLIENT_ID'] = os.environ.get("GOOGLE_CLIENT_ID")
