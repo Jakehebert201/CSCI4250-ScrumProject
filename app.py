@@ -15,8 +15,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
-
-
+# This is for the prefix-aware deployment
 class PrefixMiddleware:
     """Keep Flask aware of a deployment prefix (e.g., /app) when present."""
 
@@ -46,8 +45,13 @@ class PrefixMiddleware:
 
 # Honour proxy headers and enforce prefix-aware URL generation (when needed)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-configured_prefix = os.environ.get("APP_URL_PREFIX", "").strip()
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, default_prefix=configured_prefix)
+raw_prefix = os.environ.get("APP_URL_PREFIX")
+if raw_prefix is None:
+    raw_prefix = "/app"
+configured_prefix = raw_prefix.strip()
+normalized_prefix = configured_prefix.rstrip("/") if configured_prefix else ""
+app.config["APPLICATION_ROOT"] = normalized_prefix or "/"
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, default_prefix=normalized_prefix)
 
 # OAuth Configuration
 app.config['GOOGLE_CLIENT_ID'] = os.environ.get("GOOGLE_CLIENT_ID")

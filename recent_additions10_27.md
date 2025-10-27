@@ -4,7 +4,7 @@ Snapshot of notable updates so contributors can see what changed at a glance.
 
 ## Prefix-aware routing (Oct 27, 2025)
 - Added `PrefixMiddleware` alongside `ProxyFix` so production paths under `/app` work without touching templates.
-- Middleware auto-detects forwarded headers (`X-Script-Name`, `X-Forwarded-Prefix`) and falls back to an `APP_URL_PREFIX` env var, keeping local dev prefix-free unless explicitly requested.
+- Middleware auto-detects forwarded headers (`X-Script-Name`, `X-Forwarded-Prefix`) and falls back to an `APP_URL_PREFIX` env var. The app now defaults to `/app`; export `APP_URL_PREFIX=/` if you want to run at the site root locally.
 - README and `recent_changes_102525.md` updated to explain the configuration knobs.
 
 ## Dynamic drop-in pages (Oct 25, 2025)
