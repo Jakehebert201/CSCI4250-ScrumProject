@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -193,6 +193,29 @@ class StudentLocation(db.Model):
     class_attended = db.relationship("Class", backref=db.backref("student_locations", lazy="dynamic"))
 
 
+class ClockEvent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
+    event_type = db.Column(db.String(20), nullable=False)
+    recorded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    lat = db.Column(db.Float, nullable=True)
+    lng = db.Column(db.Float, nullable=True)
+    accuracy = db.Column(db.Float, nullable=True)
+
+    student = db.relationship("Student", backref=db.backref("clock_events", lazy="dynamic"))
+
+
+class DailyCampusTime(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint("student_id", "day", name="uq_daily_campus_time_student_day"),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
+    day = db.Column(db.Date, nullable=False)
+    total_seconds = db.Column(db.Integer, nullable=False, default=0)
+
+    student = db.relationship("Student", backref=db.backref("daily_campus_times", lazy="dynamic"))
+
 # Keep the old User and Location models for backward compatibility during migration
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -235,6 +258,46 @@ def format_dt(dt):
 
 
 app.jinja_env.filters["format_dt"] = format_dt
+
+
+def format_duration(seconds):
+    if seconds is None:
+        return "--"
+    try:
+        total_seconds = int(seconds)
+    except (TypeError, ValueError):
+        return "--"
+    if total_seconds < 0:
+        total_seconds = 0
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    return f"{hours:02}:{minutes:02}:{secs:02}"
+
+
+app.jinja_env.filters["format_duration"] = format_duration
+
+
+def _add_daily_campus_time(student_id, start_dt, end_dt):
+    if not (student_id and start_dt and end_dt):
+        return
+    if end_dt <= start_dt:
+        return
+
+    current_start = start_dt
+    while True:
+        day = current_start.date()
+        next_day_start = datetime.combine(day + timedelta(days=1), datetime.min.time())
+        segment_end = min(end_dt, next_day_start)
+        seconds = int((segment_end - current_start).total_seconds())
+        if seconds > 0:
+            daily_time = DailyCampusTime.query.filter_by(student_id=student_id, day=day).first()
+            if not daily_time:
+                daily_time = DailyCampusTime(student_id=student_id, day=day, total_seconds=0)
+                db.session.add(daily_time)
+            daily_time.total_seconds += seconds
+        if segment_end >= end_dt:
+            break
+        current_start = segment_end
 
 
 # ---------------------- ROUTES ---------------------- #
@@ -681,6 +744,105 @@ def get_city_from_coordinates(lat, lng):
     return "Unknown"
 
 
+def _parse_event_timestamp(raw_ts):
+    if not raw_ts:
+        return None
+    value = raw_ts.strip()
+    if not value:
+        return None
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
+@app.route("/clock_event", methods=["POST"])
+def clock_event():
+    if not session.get("user_id"):
+        return jsonify({"error": "not authenticated"}), 401
+
+    if session.get("user_type") != "student":
+        return jsonify({"error": "forbidden"}), 403
+
+    student = Student.query.get(session.get("user_id"))
+    if not student:
+        return jsonify({"error": "student not found"}), 404
+
+    data = request.get_json(silent=True) or request.form
+    event_type = (data.get("event_type") or data.get("action") or "").strip().lower()
+
+    if event_type in {"in", "clockin", "clock_in"}:
+        event_type = "clock_in"
+    elif event_type in {"out", "clockout", "clock_out"}:
+        event_type = "clock_out"
+    else:
+        return jsonify({"error": "invalid event type"}), 400
+
+    timestamp = _parse_event_timestamp(data.get("timestamp") or data.get("recorded_at"))
+    recorded_at = timestamp or datetime.utcnow()
+
+    def _coerce_float(field):
+        raw = data.get(field)
+        if raw in (None, "", "null"):
+            return None
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return None
+
+    lat = _coerce_float("lat")
+    lng = _coerce_float("lng")
+    accuracy = _coerce_float("accuracy")
+
+    event = ClockEvent(
+        student_id=student.id,
+        event_type=event_type,
+        recorded_at=recorded_at,
+        lat=lat,
+        lng=lng,
+        accuracy=accuracy,
+    )
+
+    db.session.add(event)
+
+    if event.event_type == "clock_out":
+        clock_in_event = (
+            ClockEvent.query.filter_by(student_id=student.id, event_type="clock_in")
+            .filter(ClockEvent.recorded_at <= event.recorded_at)
+            .order_by(ClockEvent.recorded_at.desc())
+            .first()
+        )
+        if clock_in_event:
+            has_intermediate_out = (
+                ClockEvent.query.filter_by(student_id=student.id, event_type="clock_out")
+                .filter(ClockEvent.recorded_at > clock_in_event.recorded_at, ClockEvent.recorded_at < event.recorded_at)
+                .first()
+            )
+            if not has_intermediate_out:
+                _add_daily_campus_time(student.id, clock_in_event.recorded_at, event.recorded_at)
+
+    db.session.commit()
+
+    return jsonify(
+        {
+            "success": True,
+            "event": {
+                "id": event.id,
+                "event_type": event.event_type,
+                "recorded_at": event.recorded_at.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z"),
+                "lat": event.lat,
+                "lng": event.lng,
+                "accuracy": event.accuracy,
+            },
+        }
+    ), 200
+
+
 @app.route("/database")
 def database():
     if not session.get("user_id"):
@@ -694,29 +856,37 @@ def database():
         professors = Professor.query.all()
         classes = Class.query.all()
         student_locations = StudentLocation.query.order_by(StudentLocation.created_at.desc()).limit(100).all()
+        daily_times = DailyCampusTime.query.order_by(DailyCampusTime.day.desc(), DailyCampusTime.student_id).limit(200).all()
         
         return render_template("database.html", 
                              students=students, 
                              professors=professors,
                              classes=classes,
                              student_locations=student_locations,
+                             daily_times=daily_times,
                              user_type=user_type)
     
     elif user_type == "student":
         # Students can only see their own data
         student = Student.query.get(session.get("user_id"))
+        if not student:
+            session.clear()
+            flash("Session invalid — please log in again.")
+            return redirect(url_for("login_student"))
         student_locations = student.locations.order_by(StudentLocation.created_at.desc()).limit(50).all()
+        daily_times = student.daily_campus_times.order_by(DailyCampusTime.day.desc()).all()
         
         return render_template("database.html", 
                              students=[student], 
                              student_locations=student_locations,
+                             daily_times=daily_times,
                              user_type=user_type)
     
     else:
         # Legacy users - show old data
         users = User.query.all()
         locations = Location.query.order_by(Location.created_at.desc()).limit(100).all()
-        return render_template("database.html", users=users, locations=locations, user_type="legacy")
+        return render_template("database.html", users=users, locations=locations, daily_times=[], user_type="legacy")
 
 
 if __name__ == "__main__":

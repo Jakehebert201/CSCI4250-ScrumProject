@@ -100,7 +100,7 @@
             maxZoom: 19,
             attribution: "© OpenStreetMap contributors",
         }).addTo(map);
-
+        //THIS WORKS! DO NOT EDIT! LINTER HATES IT, BUT IT WORKS!
         // Add markers for recent student locations
         {% if recent_locations %}
         const locations = [
@@ -108,21 +108,23 @@
             {
                 lat: {{ location.lat }},
                 lng: {{ location.lng }},
-                student: "{{ location.student.full_name }}",
-                city: "{{ location.city or 'Unknown' }}",
-                time: "{{ location.created_at|format_dt }}"
+                student: {{ location.student.full_name|tojson }},
+                city: {{ (location.city or 'Unknown')|tojson }},
+                time: {{ location.created_at|format_dt|tojson }}
             }{% if not loop.last %},{% endif %}
             {% endfor %}
         ];
 
+        const markers = [];
         locations.forEach(loc => {
-            L.marker([loc.lat, loc.lng])
+            const marker = L.marker([loc.lat, loc.lng])
                 .addTo(map)
                 .bindPopup(`<strong>${loc.student}</strong><br>${loc.city}<br><small>${loc.time}</small>`);
+            markers.push(marker);
         });
 
-        if (locations.length > 0) {
-            const group = new L.featureGroup(locations.map(loc => L.marker([loc.lat, loc.lng])));
+        if (markers.length > 0) {
+            const group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds().pad(0.1));
         }
         {% endif %}

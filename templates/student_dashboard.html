@@ -65,6 +65,33 @@
             <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing your current location"></div>
             <p id="location-message" class="dashboard__message">Requesting location access...</p>
         </section>
+        <section>
+            <div> <h2> Clock In/Out </h2></div>
+            <div class="clock-button-group">
+                <form id="clock-event-form" data-endpoint="{{ url_for('clock_event') }}" hidden>
+                    <input type="hidden" name="event_type" id="clock-event-type">
+                    <input type="hidden" name="timestamp" id="clock-event-timestamp">
+                    <input type="hidden" name="lat" id="clock-event-lat">
+                    <input type="hidden" name="lng" id="clock-event-lng">
+                    <input type="hidden" name="accuracy" id="clock-event-accuracy">
+                </form>
+
+                <button id="clock-in" class="clock-button">
+                    <span class="clock-button__title">Clock In</span>
+                    <span class="clock-button__meta" aria-live="polite">
+                        <span>Last: <time id="clock-in-last" datetime="">Never</time></span>
+                        <span>Elapsed: <span id="clock-in-elapsed">--</span></span>
+                    </span>
+                </button>
+                <button id="clock-out" class="clock-button">
+                    <span class="clock-button__title">Clock Out</span>
+                    <span class="clock-button__meta" aria-live="polite">
+                        <span>Last: <time id="clock-out-last" datetime="">Never</time></span>
+                        <span>Elapsed: <span id="clock-out-elapsed">--</span></span>
+                    </span>
+                </button>
+            </div>
+        </section>
     </main>
     <footer class="footer">
         <small>&copy; 2025 Student Tracker. Built with Flask.</small>
@@ -72,8 +99,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script>
+    var lastKnownPosition = null;
     // Send location to server for students
     function postLocation(lat, lng, accuracy) {
+      lastKnownPosition = { lat: lat, lng: lng, accuracy: accuracy };
       fetch("{{ url_for('update_location') }}", {
         method: "POST",
         credentials: "same-origin",
@@ -100,6 +129,118 @@
         console.debug("geolocation error", err);
       });
     }
+
+    var clockInButton = document.getElementById('clock-in');
+    var clockOutButton = document.getElementById('clock-out');
+    var clockInLast = document.getElementById('clock-in-last');
+    var clockOutLast = document.getElementById('clock-out-last');
+    var clockInElapsed = document.getElementById('clock-in-elapsed');
+    var clockOutElapsed = document.getElementById('clock-out-elapsed');
+    var clockEventForm = document.getElementById('clock-event-form');
+    var clockEventEndpoint = clockEventForm ? clockEventForm.dataset.endpoint : null;
+    var clockEventTypeInput = document.getElementById('clock-event-type');
+    var clockEventTimestampInput = document.getElementById('clock-event-timestamp');
+    var clockEventLatInput = document.getElementById('clock-event-lat');
+    var clockEventLngInput = document.getElementById('clock-event-lng');
+    var clockEventAccuracyInput = document.getElementById('clock-event-accuracy');
+    var clockInStartedAt = null;
+    var elapsedTicker = null;
+
+    function formatDateTime(date) {
+      return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function formatDuration(ms) {
+      if (!isFinite(ms) || ms < 0) ms = 0;
+      var totalSeconds = Math.floor(ms / 1000);
+      var hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      var minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      var seconds = String(totalSeconds % 60).padStart(2, '0');
+      return hours + ":" + minutes + ":" + seconds;
+    }
+
+    function stopElapsedTicker() {
+      if (elapsedTicker) {
+        clearInterval(elapsedTicker);
+        elapsedTicker = null;
+      }
+    }
+
+    function tickElapsed() {
+      if (!clockInStartedAt || !clockInElapsed) return;
+      clockInElapsed.textContent = formatDuration(Date.now() - clockInStartedAt.getTime());
+    }
+
+    function startElapsedTicker() {
+      stopElapsedTicker();
+      tickElapsed();
+      elapsedTicker = setInterval(tickElapsed, 1000);
+    }
+
+    function sendClockEvent(eventType) {
+      if (!clockEventEndpoint) return;
+      var payload = {
+        event_type: eventType,
+        timestamp: new Date().toISOString()
+      };
+      if (lastKnownPosition) {
+        payload.lat = lastKnownPosition.lat;
+        payload.lng = lastKnownPosition.lng;
+        if (typeof lastKnownPosition.accuracy === 'number') {
+          payload.accuracy = lastKnownPosition.accuracy;
+        }
+      }
+      if (clockEventTypeInput) clockEventTypeInput.value = payload.event_type;
+      if (clockEventTimestampInput) clockEventTimestampInput.value = payload.timestamp;
+      if (clockEventLatInput) clockEventLatInput.value = payload.lat == null ? "" : payload.lat;
+      if (clockEventLngInput) clockEventLngInput.value = payload.lng == null ? "" : payload.lng;
+      if (clockEventAccuracyInput) clockEventAccuracyInput.value = payload.accuracy == null ? "" : payload.accuracy;
+
+      fetch(clockEventEndpoint, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(function(err) {
+        console.debug("clock event post failed", err);
+      });
+    }
+
+    clockInButton && clockInButton.addEventListener('click', function() {
+      var now = new Date();
+      clockInStartedAt = now;
+      if (clockInLast) {
+        clockInLast.textContent = formatDateTime(now);
+        clockInLast.setAttribute('datetime', now.toISOString());
+      }
+      if (clockInElapsed) {
+        clockInElapsed.textContent = '00:00:00';
+      }
+      if (clockOutElapsed) {
+        clockOutElapsed.textContent = '--';
+      }
+      startElapsedTicker();
+      sendClockEvent('clock_in');
+    });
+
+    clockOutButton && clockOutButton.addEventListener('click', function() {
+      var now = new Date();
+      if (clockOutLast) {
+        clockOutLast.textContent = formatDateTime(now);
+        clockOutLast.setAttribute('datetime', now.toISOString());
+      }
+      if (clockInStartedAt) {
+        var duration = now.getTime() - clockInStartedAt.getTime();
+        var formatted = formatDuration(duration);
+        if (clockOutElapsed) clockOutElapsed.textContent = formatted;
+        if (clockInElapsed) clockInElapsed.textContent = formatted;
+      } else if (clockOutElapsed) {
+        clockOutElapsed.textContent = '00:00:00';
+      }
+      stopElapsedTicker();
+      clockInStartedAt = null;
+      sendClockEvent('clock_out');
+    });
     </script>
 </body>
 </html>

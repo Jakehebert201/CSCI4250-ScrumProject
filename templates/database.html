@@ -175,6 +175,36 @@
         {% endif %}
       </tbody>
     </table>
+
+    <h2>Daily Campus Time</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          {% if user_type == 'professor' %}<th>Student</th>{% endif %}
+          <th>Day</th>
+          <th>Total Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if daily_times %}
+          {% for entry in daily_times %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            {% if user_type == 'professor' %}
+              <td>{{ entry.student.full_name if entry.student else entry.student_id }}</td>
+            {% endif %}
+            <td>{{ entry.day.strftime("%b %d, %Y") }}</td>
+            <td>{{ entry.total_seconds|format_duration }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="{% if user_type == 'professor' %}4{% else %}3{% endif %}">No daily time recorded</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
   </main>
 </body>
 </html>

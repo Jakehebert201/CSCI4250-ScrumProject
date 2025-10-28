@@ -79,7 +79,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const wrappedUpdate = (position) => {
         hasFix = true;
-        updateStatus(position.coords);
+        if (!position || !position.coords) {
+            return;
+        }
+        const coords = position.coords;
+        window.lastKnownPosition = {
+            lat: coords.latitude,
+            lng: coords.longitude,
+            accuracy: coords.accuracy,
+        };
+        updateStatus(coords);
     };
 
     navigator.geolocation.getCurrentPosition(wrappedUpdate, handleError, geoOptions);
