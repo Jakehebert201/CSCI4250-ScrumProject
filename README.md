@@ -44,16 +44,23 @@ A Flask web application that allows campus staff to monitor student check-ins. A
    ```bash
    python app.py
    ```
-7. **Open the app** at <http://127.0.0.1:5000>. Register a user, log in, and grant geolocation access on the dashboard page to start collecting location data.
+7. **Open the app** at <http://127.0.0.1:5000>. The startup process seeds example accounts (`student1` / `1234`, `professor1` / `1234`) so you can log in immediately. Grant geolocation access on the dashboard page to start collecting location data.
 
 ## Project Structure
 ```
-app.py                 # Flask application, models, routes
-templates/             # Jinja2 templates (landing page, auth, dashboard, database view)
-static/css/style.css   # Global styling
-static/js/dashboard.js # Front-end geolocation + map logic
+app.py                     # Thin entry point invoking the application factory
+studenttracker/            # Application package (factory, models, routes, helpers)
+  __init__.py              # create_app factory, middleware, OAuth + DB setup
+  extensions.py            # Shared SQLAlchemy/Migrate/OAuth instances
+  middleware.py            # Prefix-aware proxy middleware
+  models.py                # SQLAlchemy models for users, classes, locations
+  routes/                  # Grouped route registrations (auth, dashboard, APIs)
+  utils.py                 # Template filters, time tracking helpers, geocoding
+templates/                 # Jinja2 templates (landing page, auth, dashboard, database view)
+static/css/style.css       # Global styling
+static/js/dashboard.js     # Front-end geolocation + map logic
 instance/studenttracker.db # SQLite database (created at runtime)
-requirements.txt       # Python dependencies
+requirements.txt           # Python dependencies
 ```
 
 ## Key Routes
