@@ -22,6 +22,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 APP_FILE = REPO_ROOT / "tracker" / "app.py"  # matches docker: /app/tracker/app.py
+if not APP_FILE.exists():
+    APP_FILE = REPO_ROOT / "app.py"
 MIGRATIONS_DIR = REPO_ROOT / "migrations"
 
 

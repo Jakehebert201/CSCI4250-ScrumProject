@@ -35,7 +35,7 @@ A Flask web application that allows campus staff to monitor student check-ins. A
    ```bash
    python scripts/setup_database.py
    ```
-   The helper script will create the `migrations/` folder (if missing) and apply the latest schema. It targets the Flask app entry point at `tracker/app.py` (matching the Docker layout); adjust `APP_FILE` inside the script if your local structure differs. The application also calls `db.create_all()` on startup, so this step can be skipped for quick experiments, though migrations are recommended as the schema evolves.
+   The helper script will create the `migrations/` folder (if missing) and apply the latest schema. It targets the Flask app entry point at `tracker/app.py` (matching the Docker layout) and falls back to `app.py` when that path is absent; adjust `APP_FILE` inside the script if your structure differs. The application also calls `db.create_all()` on startup, so this step can be skipped for quick experiments, though migrations are recommended as the schema evolves.
 6. **Run the application:**
    ```bash
    flask --app app run --debug

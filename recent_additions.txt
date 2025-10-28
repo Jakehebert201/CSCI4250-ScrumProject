@@ -23,7 +23,8 @@ Generated on: Wed Oct 22 13:15:17 EDT 2025
    - Extended `database.html` to surface aggregated time spent on campus alongside existing location history.
    - Added helper utilities in `app.py` for formatting durations and splitting multi-day sessions.
    - Introduced `scripts/setup_database.py` to bootstrap the migrations folder and apply schema upgrades automatically.
-   - Updated the helper to target `tracker/app.py`, aligning with the Flask app path used inside Docker.
+   - Updated the helper to target `tracker/app.py` (with a fallback to `app.py`), aligning with the Flask app path used inside Docker.
+   - Added `wsgi_mount.ReverseProxied` middleware and wired it into `app.py` so reverse proxy headers (`X-Script-Name`, `X-Forwarded-Proto`) are honoured.
 
 Notes:
 - Scope covers commits since Oct 21, 2025 (inclusive). Update the window if additional days should be included.

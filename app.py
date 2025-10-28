@@ -9,12 +9,14 @@ from dotenv import load_dotenv
 import os
 import requests
 import re
+from wsgi_mount import ReverseProxied
 
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/app/static")
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
+app.wsgi_app = ReverseProxied(app.wsgi_app)
 # This is for the prefix-aware deployment
 class PrefixMiddleware:
     """Keep Flask aware of a deployment prefix (e.g., /app) when present."""
