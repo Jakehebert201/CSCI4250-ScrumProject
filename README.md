@@ -7,6 +7,7 @@ A Flask web application that allows campus staff to monitor student check-ins. A
 - Dashboard with a real-time Leaflet map and browser geolocation status.
 - Location updates persisted to SQLite (`instance/studenttracker.db`) with reverse geocoding via OpenStreetMap’s Nominatim API.
 - Admin-style database view that lists recent location updates and registered users.
+- Clock in/out controls that persist attendance events and aggregate total time spent on campus per student per day.
 
 ## Tech Stack
 - **Backend:** Flask, Flask-SQLAlchemy, Flask-Migrate
@@ -30,7 +31,11 @@ A Flask web application that allows campus staff to monitor student check-ins. A
    ```bash
    flask --app app db upgrade  # creates tables via Flask-Migrate
    ```
-   The application currently calls `db.create_all()` on startup, so this step can be skipped for quick experiments. Using migrations is recommended as the schema evolves.
+   or simply run:
+   ```bash
+   python scripts/setup_database.py
+   ```
+   The helper script will create the `migrations/` folder (if missing) and apply the latest schema. It targets the Flask app entry point at `tracker/app.py` (matching the Docker layout); adjust `APP_FILE` inside the script if your local structure differs. The application also calls `db.create_all()` on startup, so this step can be skipped for quick experiments, though migrations are recommended as the schema evolves.
 6. **Run the application:**
    ```bash
    flask --app app run --debug
@@ -53,18 +58,23 @@ requirements.txt       # Python dependencies
 
 ## Key Routes
 - `GET /` – Marketing landing page.
-- `GET|POST /register` – Create a new user account.
-- `GET|POST /login` – Authenticate existing users.
-- `GET /dashboard` – Authenticated dashboard with real-time map.
-- `POST /update_location` – Receives `{lat, lng, accuracy}` JSON payloads; updates user record and saves a location row.
-- `GET /database` – Displays recent locations and all users (requires login).
+- `GET|POST /register/student` – Student account registration.
+- `GET|POST /register/professor` – Professor account registration.
+- `GET|POST /login/student` and `/login/professor` – Role-specific authentication.
+- `GET /dashboard/student` – Student dashboard with real-time map, location status, and clock controls.
+- `GET /dashboard/professor` – Professor dashboard with recent student activity.
+- `POST /update_location` – Receives `{lat, lng, accuracy}` JSON payloads; updates user record and stores a location row.
+- `POST /clock_event` – Accepts clock in/out events with optional coordinates.
+- `GET /database` – Displays recent locations, registered users, and per-day campus time totals (requires login).
 
-## Location Workflow
+## Location & Time Tracking Workflow
 1. User logs in and reaches the dashboard.
 2. Browser geolocation retrieves the current position and updates the UI (`static/js/dashboard.js`).
 3. The same geolocation payload is POSTed to `/update_location`.
 4. Backend stores the coordinates, reverse geocodes the city name via Nominatim, and records the timestamp.
-5. Admins can review the data in the `/database` view.
+5. Users interact with the clock in/out buttons, which POST to `/clock_event`.
+6. Backend persists each event and, on clock-out, calculates time elapsed since the prior clock-in, rolling totals into the `daily_campus_time` table (splitting multi-day spans automatically).
+7. Admins and students can review time totals alongside location history in the `/database` view.
 
 ## Development Notes
 - The default Nominatim request includes a simple User-Agent string; update it with contact details before production use.

@@ -18,6 +18,13 @@ Generated on: Wed Oct 22 13:15:17 EDT 2025
    - Rebooted the project structure around a simpler Flask app with login support.
    - Added new static assets and templates for the login flow while removing legacy tracker modules and tests that no longer fit the simplified architecture.
 
+5. Local workspace update — Wed Oct 22 2025 (Codex assistant)
+   - Persist clock-in and clock-out events to a new `daily_campus_time` table, capturing per-day totals for each student.
+   - Extended `database.html` to surface aggregated time spent on campus alongside existing location history.
+   - Added helper utilities in `app.py` for formatting durations and splitting multi-day sessions.
+   - Introduced `scripts/setup_database.py` to bootstrap the migrations folder and apply schema upgrades automatically.
+   - Updated the helper to target `tracker/app.py`, aligning with the Flask app path used inside Docker.
+
 Notes:
 - Scope covers commits since Oct 21, 2025 (inclusive). Update the window if additional days should be included.
 - Update the generation timestamp if this document is regenerated later.
