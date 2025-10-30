@@ -87,7 +87,7 @@ requirements.txt           # Python dependencies
 - The default Nominatim request includes a simple User-Agent string; update it with contact details before production use.
 - SQLite is stored under `instance/`. Add this directory to `.gitignore` (already practical) to avoid committing local databases.
 - Consider enabling HTTPS and same-site cookie settings before deployment.
-- When deploying behind nginx under `/app/`, the application automatically respects the prefix via `ProxyFix` + a custom middleware. The app defaults to `/app`; override with `APP_URL_PREFIX=/` (or forward `X-Script-Name`) if you want to develop at the site root.
+- All blueprints are registered under `/app`, so reverse proxies only need to pass the usual host/proto headers—no `X-Forwarded-Prefix` rewrites required.
 
 ## Future Enhancements
 - Role-based access to separate student and staff dashboards.

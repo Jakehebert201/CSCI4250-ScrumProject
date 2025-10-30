@@ -10,6 +10,10 @@ Highlights from the modular refactor and onboarding improvements.
 ## Template/static discovery fix
 - Explicitly pointed Flask at the project-level `templates/` and `static/` directories so deployments outside the repo root pick up assets correctly.
 
+## Hard `/app` mount
+- Registered every blueprint with a `/app` URL prefix so generated links always include the deployment path without relying on `X-Forwarded-Prefix`.
+- Simplified proxy configuration to the standard host/proto headers; the root route now redirects to `/app/` automatically.
+
 ## Seed users for quick demos
 - Added automatic creation of `student1` and `professor1` (password `1234`) during app startup to streamline local testing after database resets.
 

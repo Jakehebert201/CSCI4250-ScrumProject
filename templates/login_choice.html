@@ -27,10 +27,10 @@
                 <div style="text-align: center; margin-bottom: 1rem;">
                     <h3 style="margin: 0 0 1rem 0; color: var(--primary);">Quick Sign In with Google</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <a href="{{ url_for('oauth_login', user_type='student') }}" class="btn btn--primary" style="text-align: center; padding: 1rem;">
+                        <a href="{{ url_for('auth.oauth_login', user_type='student') }}" class="btn btn--primary" style="text-align: center; padding: 1rem;">
                             🎓 Student (Google)
                         </a>
-                        <a href="{{ url_for('oauth_login', user_type='professor') }}" class="btn btn--primary" style="text-align: center; padding: 1rem;">
+                        <a href="{{ url_for('auth.oauth_login', user_type='professor') }}" class="btn btn--primary" style="text-align: center; padding: 1rem;">
                             👨‍🏫 Professor (Google)
                         </a>
                     </div>
@@ -41,18 +41,18 @@
                 </div>
                 {% endif %}
                 
-                <a href="{{ url_for('login_student') }}" class="btn btn--{% if oauth_enabled %}secondary{% else %}primary{% endif %}" style="text-align: center; padding: 1rem;">
+                <a href="{{ url_for('auth.login_student') }}" class="btn btn--{% if oauth_enabled %}secondary{% else %}primary{% endif %}" style="text-align: center; padding: 1rem;">
                     🎓 Student Login{% if not oauth_enabled %} (Email/Password){% endif %}
                 </a>
-                <a href="{{ url_for('login_professor') }}" class="btn btn--{% if oauth_enabled %}secondary{% else %}primary{% endif %}" style="text-align: center; padding: 1rem;">
+                <a href="{{ url_for('auth.login_professor') }}" class="btn btn--{% if oauth_enabled %}secondary{% else %}primary{% endif %}" style="text-align: center; padding: 1rem;">
                     👨‍🏫 Professor Login{% if not oauth_enabled %} (Email/Password){% endif %}
                 </a>
             </div>
 
             <p class="login__note" style="margin-top: 2rem;">
                 Don't have an account? 
-                <a href="{{ url_for('register_student') }}">Register as Student</a> | 
-                <a href="{{ url_for('register_professor') }}">Register as Professor</a>
+                <a href="{{ url_for('auth.register_student') }}">Register as Student</a> | 
+                <a href="{{ url_for('auth.register_professor') }}">Register as Professor</a>
             </p>
         </section>
     </main>

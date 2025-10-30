@@ -1,14 +1,12 @@
 import os
 
-from flask import Flask
+from flask import Flask, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash
 
 from studenttracker.extensions import db, migrate, oauth
-from studenttracker.middleware import PrefixMiddleware
 from studenttracker.routes import register_blueprints
 from studenttracker.utils import register_template_filters
-from wsgi_mount import ReverseProxied
 
 
 def create_app():
@@ -19,28 +17,13 @@ def create_app():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     template_dir = os.path.join(base_dir, "templates")
     static_dir = os.path.join(base_dir, "static")
-    raw_prefix = os.environ.get("APP_URL_PREFIX", "/app")
-    configured_prefix = (raw_prefix or "").strip()
-    if configured_prefix and not configured_prefix.startswith("/"):
-        configured_prefix = f"/{configured_prefix}"
-    if configured_prefix in {"", "/"}:
-        normalized_prefix = ""
-    else:
-        normalized_prefix = configured_prefix.rstrip("/")
-    static_url_path = f"{normalized_prefix}/static" if normalized_prefix else "/static"
+    static_url_path = "/app/static"
 
-    app = Flask(
-        __name__,
-        static_url_path=static_url_path,
-        template_folder=template_dir,
-        static_folder=static_dir,
-    )
+    app = Flask(__name__, static_url_path=static_url_path, template_folder=template_dir, static_folder=static_dir)
     app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
-    app.wsgi_app = ReverseProxied(app.wsgi_app)
+    app.config["APPLICATION_ROOT"] = "/app"
 
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_prefix=1)
-    app.config["APPLICATION_ROOT"] = normalized_prefix or "/"
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app, default_prefix=normalized_prefix)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     default_db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "instance", "studenttracker.db"))
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", f"sqlite:///{default_db_path}")
@@ -116,4 +99,9 @@ def create_app():
         ensure_seed_users()
 
     register_blueprints(app)
+
+    @app.route("/")
+    def _redirect_root_to_app():
+        return redirect(url_for("dashboards.landing_page"))
+
     return app

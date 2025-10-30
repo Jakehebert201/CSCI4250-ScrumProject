@@ -9,11 +9,11 @@
 </head>
 <body class="layout">
     <header class="page-header">
-        <a class="brand" href="{{ url_for('landing_page') }}">Student Location Tracker</a>
+        <a class="brand" href="{{ url_for('dashboards.landing_page') }}">Student Location Tracker</a>
         <nav class="page-nav">
-            <a href="{{ url_for('dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
-            <a href="{{ url_for('database') }}" class="nav__item">Database</a>
-            <a href="{{ url_for('logout') }}" class="nav__item">Log Out</a>
+            <a href="{{ url_for('dashboards.dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
+            <a href="{{ url_for('dashboards.database') }}" class="nav__item">Database</a>
+            <a href="{{ url_for('auth.logout') }}" class="nav__item">Log Out</a>
         </nav>
     </header>
     <main class="dashboard">
@@ -51,7 +51,7 @@
     <script>
     // send one-shot current position to server (sends session cookie with credentials)
     function postLocation(lat, lng, accuracy) {
-      fetch("{{ url_for('update_location') }}", {
+      fetch("{{ url_for('api.update_location') }}", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },

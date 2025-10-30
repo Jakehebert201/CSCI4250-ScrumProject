@@ -13,14 +13,14 @@
             <p class="login__subtitle">Access the professor dashboard to monitor student locations.</p>
             {% if oauth_enabled %}
             <div style="text-align: center; margin-bottom: 2rem;">
-                <a href="{{ url_for('oauth_login', user_type='professor') }}" class="btn btn--primary" style="width: 100%; padding: 1rem; margin-bottom: 1rem;">
+                <a href="{{ url_for('auth.oauth_login', user_type='professor') }}" class="btn btn--primary" style="width: 100%; padding: 1rem; margin-bottom: 1rem;">
                     🚀 Sign in with Google
                 </a>
                 <div style="margin: 1rem 0; color: var(--muted);">or</div>
             </div>
             {% endif %}
 
-            <form class="login__form" method="post" action="{{ url_for('login_professor') }}">
+            <form class="login__form" method="post" action="{{ url_for('auth.login_professor') }}">
                 <label for="identifier">Employee ID, Email, or Username</label>
                 <input id="identifier" type="text" name="username" placeholder="EMP123, name@university.edu, or username" required>
 
@@ -36,12 +36,12 @@
 
             <p class="login__signup">
               New professor?
-              <a class="btn btn--primary" href="{{ url_for('register_professor') }}">Create professor account</a>
+              <a class="btn btn--primary" href="{{ url_for('auth.register_professor') }}">Create professor account</a>
             </p>
 
             <p class="login__note">
-                <a href="{{ url_for('login') }}">← Back to login options</a> | 
-                <a href="{{ url_for('login_student') }}">Student login</a>
+                <a href="{{ url_for('auth.login') }}">← Back to login options</a> | 
+                <a href="{{ url_for('auth.login_student') }}">Student login</a>
             </p>
         </section>
     </main>

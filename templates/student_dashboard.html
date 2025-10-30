@@ -9,11 +9,11 @@
 </head>
 <body class="layout">
     <header class="page-header">
-        <a class="brand" href="{{ url_for('landing_page') }}">Student Location Tracker</a>
+        <a class="brand" href="{{ url_for('dashboards.landing_page') }}">Student Location Tracker</a>
         <nav class="page-nav">
-            <a href="{{ url_for('student_dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
-            <a href="{{ url_for('database') }}" class="nav__item">My Data</a>
-            <a href="{{ url_for('logout') }}" class="nav__item">Log Out</a>
+            <a href="{{ url_for('dashboards.student_dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
+            <a href="{{ url_for('dashboards.database') }}" class="nav__item">My Data</a>
+            <a href="{{ url_for('auth.logout') }}" class="nav__item">Log Out</a>
         </nav>
     </header>
     <main class="dashboard">
@@ -68,7 +68,7 @@
         <section>
             <div> <h2> Clock In/Out </h2></div>
             <div class="clock-button-group">
-                <form id="clock-event-form" data-endpoint="{{ url_for('clock_event') }}" hidden>
+                <form id="clock-event-form" data-endpoint="{{ url_for('api.clock_event') }}" hidden>
                     <input type="hidden" name="event_type" id="clock-event-type">
                     <input type="hidden" name="timestamp" id="clock-event-timestamp">
                     <input type="hidden" name="lat" id="clock-event-lat">
@@ -103,7 +103,7 @@
     // Send location to server for students
     function postLocation(lat, lng, accuracy) {
       lastKnownPosition = { lat: lat, lng: lng, accuracy: accuracy };
-      fetch("{{ url_for('update_location') }}", {
+      fetch("{{ url_for('api.update_location') }}", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },

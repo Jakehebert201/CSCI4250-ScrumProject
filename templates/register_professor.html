@@ -17,7 +17,7 @@
         {% endif %}
       {% endwith %}
 
-      <form class="login__form" method="post" action="{{ url_for('register_professor') }}">
+      <form class="login__form" method="post" action="{{ url_for('auth.register_professor') }}">
         <label for="employee_id">Employee ID *</label>
         <input id="employee_id" name="employee_id" placeholder="EMP123456" required>
 
@@ -54,7 +54,7 @@
 
       <p class="login__signup">
         Already have an account?
-        <a class="btn btn--secondary" href="{{ url_for('login_professor') }}">Sign in</a>
+        <a class="btn btn--secondary" href="{{ url_for('auth.login_professor') }}">Sign in</a>
       </p>
 
       {% if error %}<p style="color:red">{{ error }}</p>{% endif %}

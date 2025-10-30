@@ -11,7 +11,7 @@
         <section class="login__panel">
             <h1>Sign In</h1>
             <p class="login__subtitle">Access the dashboard to track student locations.</p>
-            <form class="login__form" method="post" action="{{ url_for('login') }}">
+            <form class="login__form" method="post" action="{{ url_for('auth.login') }}">
                 <label for="identifier">Email or Username</label>
                 <!-- use text input named "username" so server code will accept either -->
                 <input id="identifier" type="text" name="username" placeholder="name@example.edu or username" required>
@@ -29,7 +29,7 @@
             <!-- create account button only -->
             <p class="login__signup">
               New here?
-              <a class="btn btn--primary" href="{{ url_for('register') }}">Create an account</a>
+              <a class="btn btn--primary" href="{{ url_for('auth.register_student') }}">Create an account</a>
             </p>
 
             <p class="login__note">Need access? Contact your administrator.</p>
