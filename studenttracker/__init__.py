@@ -19,7 +19,7 @@ def create_app():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     template_dir = os.path.join(base_dir, "templates")
     static_dir = os.path.join(base_dir, "static")
-    raw_prefix = os.environ.get("APP_URL_PREFIX", "")
+    raw_prefix = os.environ.get("APP_URL_PREFIX", "/app")
     configured_prefix = (raw_prefix or "").strip()
     if configured_prefix and not configured_prefix.startswith("/"):
         configured_prefix = f"/{configured_prefix}"
@@ -27,9 +27,11 @@ def create_app():
         normalized_prefix = ""
     else:
         normalized_prefix = configured_prefix.rstrip("/")
+    static_url_path = f"{normalized_prefix}/static" if normalized_prefix else "/static"
 
     app = Flask(
         __name__,
+        static_url_path=static_url_path,
         template_folder=template_dir,
         static_folder=static_dir,
     )
