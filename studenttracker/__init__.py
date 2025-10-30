@@ -23,7 +23,8 @@ def create_app():
     app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
     app.config["APPLICATION_ROOT"] = "/app"
 
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_port=1)
+    app.config["PREFERRED_URL_SCHEME"] = "https"
 
     default_db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "instance", "studenttracker.db"))
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", f"sqlite:///{default_db_path}")
