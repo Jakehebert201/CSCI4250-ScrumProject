@@ -57,8 +57,8 @@ studenttracker/            # Application package (factory, models, routes, helpe
   routes/                  # Grouped route registrations (auth, dashboard, APIs)
   utils.py                 # Template filters, time tracking helpers, geocoding
 templates/                 # Jinja2 templates (landing page, auth, dashboard, database view)
-static/css/style.css       # Global styling
-static/js/dashboard.js     # Front-end geolocation + map logic
+static/css/styles.css      # Global styling
+static/js/app.js           # Front-end geolocation + map logic
 instance/studenttracker.db # SQLite database (created at runtime)
 requirements.txt           # Python dependencies
 ```
@@ -76,7 +76,7 @@ requirements.txt           # Python dependencies
 
 ## Location & Time Tracking Workflow
 1. User logs in and reaches the dashboard.
-2. Browser geolocation retrieves the current position and updates the UI (`static/js/dashboard.js`).
+2. Browser geolocation retrieves the current position and updates the UI (`static/js/app.js`).
 3. The same geolocation payload is POSTed to `/update_location`.
 4. Backend stores the coordinates, reverse geocodes the city name via Nominatim, and records the timestamp.
 5. Users interact with the clock in/out buttons, which POST to `/clock_event`.

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard | Student Location Tracker</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body class="layout">
     <header class="page-header">
@@ -97,7 +97,7 @@
         <small>&copy; 2025 Student Tracker. Built with Flask.</small>
     </footer>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script>
     var lastKnownPosition = null;
     // Send location to server for students

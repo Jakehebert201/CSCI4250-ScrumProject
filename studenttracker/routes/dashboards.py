@@ -11,7 +11,7 @@ from studenttracker.models import (
 )
 
 
-bp = Blueprint("main", __name__, template_folder="../../templates", static_folder="../../static")
+bp = Blueprint("main", __name__)
 
 
 @bp.route("/")

@@ -12,7 +12,7 @@ def _get_google_client():
         return None
 
 
-bp = Blueprint("auth", __name__, template_folder="../../templates", static_folder="../../static")
+bp = Blueprint("auth", __name__)
 
 
 @bp.route("/register/student", methods=["GET", "POST"])

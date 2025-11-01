@@ -6,7 +6,7 @@ from studenttracker.extensions import db
 from studenttracker.models import ClockEvent, Location, Student, StudentLocation, User
 from studenttracker.utils import add_daily_campus_time, get_city_from_coordinates, parse_event_timestamp
 
-bp = Blueprint("api", __name__, template_folder="../../templates", static_folder="../../static")
+bp = Blueprint("api", __name__)
 
 
 @bp.route("/update_location", methods=["POST"])
