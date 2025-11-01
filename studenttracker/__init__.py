@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from flask import Flask, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -14,12 +15,14 @@ def create_app():
 
     load_dotenv()
 
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    template_dir = os.path.join(base_dir, "templates")
-    static_dir = os.path.join(base_dir, "static")
-    static_url_path = "/app/static"
+    base_dir = Path(__file__).resolve().parent.parent
 
-    app = Flask(__name__, static_url_path=static_url_path, template_folder=template_dir, static_folder=static_dir)
+    app = Flask(
+        __name__,
+        static_folder=str(base_dir / "static"),
+        static_url_path="/app/static",
+        template_folder=str(base_dir / "templates"),
+    )
     app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
     app.config["APPLICATION_ROOT"] = "/app"
 
@@ -103,6 +106,6 @@ def create_app():
 
     @app.route("/")
     def _redirect_root_to_app():
-        return redirect(url_for("dashboards.landing_page"))
+        return redirect(url_for("main.landing_page"))
 
     return app

@@ -11,12 +11,17 @@ from studenttracker.models import (
 )
 
 
-bp = Blueprint("dashboards", __name__)
+bp = Blueprint("main", __name__, template_folder="../../templates", static_folder="../../static")
 
 
 @bp.route("/")
 def landing_page():
     return render_template("index.html")
+
+
+@bp.route("/start")
+def login():
+    return redirect(url_for("auth.login"))
 
 
 @bp.route("/dashboard/student")
@@ -73,9 +78,9 @@ def dashboard():
 
     user_type = session.get("user_type")
     if user_type == "student":
-        return redirect(url_for("dashboards.student_dashboard"))
+        return redirect(url_for("main.student_dashboard"))
     if user_type == "professor":
-        return redirect(url_for("dashboards.professor_dashboard"))
+        return redirect(url_for("main.professor_dashboard"))
     return redirect(url_for("auth.login"))
 
 

@@ -12,7 +12,7 @@ def _get_google_client():
         return None
 
 
-bp = Blueprint("auth", __name__)
+bp = Blueprint("auth", __name__, template_folder="../../templates", static_folder="../../static")
 
 
 @bp.route("/register/student", methods=["GET", "POST"])
@@ -115,7 +115,7 @@ def login_student():
             session["user_type"] = "student"
             session["username"] = student.username
             session["full_name"] = student.full_name
-            return redirect(url_for("dashboards.student_dashboard"))
+            return redirect(url_for("main.student_dashboard"))
 
         return render_template("login_student.html", error="Invalid credentials")
 
@@ -142,7 +142,7 @@ def login_professor():
             session["user_type"] = "professor"
             session["username"] = professor.username
             session["full_name"] = professor.full_name
-            return redirect(url_for("dashboards.professor_dashboard"))
+            return redirect(url_for("main.professor_dashboard"))
 
         return render_template("login_professor.html", error="Invalid credentials")
 
@@ -227,7 +227,7 @@ def oauth_callback():
             session["username"] = student.email
             session["full_name"] = student.full_name
             session.pop("oauth_user_type", None)
-            return redirect(url_for("dashboards.student_dashboard"))
+            return redirect(url_for("main.student_dashboard"))
 
         professor = Professor.query.filter_by(email=email).first() or Professor.query.filter_by(google_id=google_id).first()
         if not professor:
@@ -255,7 +255,7 @@ def oauth_callback():
         session["username"] = professor.email
         session["full_name"] = professor.full_name
         session.pop("oauth_user_type", None)
-        return redirect(url_for("dashboards.professor_dashboard"))
+        return redirect(url_for("main.professor_dashboard"))
 
     except Exception as exc:
         current_app.logger.error("OAuth callback error: %s", exc)
@@ -272,4 +272,4 @@ def login():
 def logout():
     session.clear()
     flash("You have been logged out successfully.")
-    return redirect(url_for("dashboards.landing_page"))
+    return redirect(url_for("main.landing_page"))

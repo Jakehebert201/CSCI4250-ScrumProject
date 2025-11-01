@@ -9,10 +9,10 @@
 </head>
 <body class="layout">
     <header class="page-header">
-        <a class="brand" href="{{ url_for('dashboards.landing_page') }}">Student Location Tracker</a>
+        <a class="brand" href="{{ url_for('main.landing_page') }}">Student Location Tracker</a>
         <nav class="page-nav">
-            <a href="{{ url_for('dashboards.student_dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
-            <a href="{{ url_for('dashboards.database') }}" class="nav__item">My Data</a>
+            <a href="{{ url_for('main.student_dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
+            <a href="{{ url_for('main.database') }}" class="nav__item">My Data</a>
             <a href="{{ url_for('auth.logout') }}" class="nav__item">Log Out</a>
         </nav>
     </header>
