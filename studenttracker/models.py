@@ -67,6 +67,15 @@ class Professor(db.Model):
         return self.oauth_provider is not None
 
 
+# Association table for student-class enrollment (many-to-many)
+student_class_enrollment = db.Table('student_class_enrollment',
+    db.Column('student_id', db.Integer, db.ForeignKey('student.id'), primary_key=True),
+    db.Column('class_id', db.Integer, db.ForeignKey('class.id'), primary_key=True),
+    db.Column('enrolled_at', db.DateTime, default=datetime.utcnow, nullable=False),
+    db.Column('status', db.String(20), default='active', nullable=False)  # active, dropped, completed
+)
+
+
 class Class(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     course_code = db.Column(db.String(20), nullable=False)
@@ -77,13 +86,59 @@ class Class(db.Model):
     year = db.Column(db.Integer, nullable=False)
     room = db.Column(db.String(50), nullable=True)
     schedule = db.Column(db.String(100), nullable=True)
+    
+    # Enhanced class details
+    description = db.Column(db.Text, nullable=True)
+    capacity = db.Column(db.Integer, default=30, nullable=False)
+    credits = db.Column(db.Integer, default=3, nullable=False)
+    meeting_days = db.Column(db.String(20), nullable=True)  # e.g., "MWF", "TTH"
+    start_time = db.Column(db.Time, nullable=True)
+    end_time = db.Column(db.Time, nullable=True)
+    start_date = db.Column(db.Date, nullable=True)
+    end_date = db.Column(db.Date, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    enrollment_open = db.Column(db.Boolean, default=True, nullable=False)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # Relationships
     professor = db.relationship("Professor", backref=db.backref("classes", lazy="dynamic"))
+    enrolled_students = db.relationship("Student", 
+                                      secondary=student_class_enrollment, 
+                                      backref=db.backref("enrolled_classes", lazy="dynamic"),
+                                      lazy="dynamic")
 
     @property
     def full_course_name(self):
         return f"{self.course_code}: {self.course_name}"
+    
+    @property
+    def enrollment_count(self):
+        return self.enrolled_students.count()
+    
+    @property
+    def is_full(self):
+        return self.enrollment_count >= self.capacity
+    
+    @property
+    def available_spots(self):
+        return max(0, self.capacity - self.enrollment_count)
+    
+    def is_student_enrolled(self, student):
+        return self.enrolled_students.filter_by(id=student.id).first() is not None
+    
+    def enroll_student(self, student):
+        if not self.is_student_enrolled(student) and not self.is_full and self.enrollment_open:
+            self.enrolled_students.append(student)
+            return True
+        return False
+    
+    def drop_student(self, student):
+        if self.is_student_enrolled(student):
+            self.enrolled_students.remove(student)
+            return True
+        return False
 
 
 class StudentLocation(db.Model):
