@@ -46,8 +46,16 @@ def create_app():
                 name="google",
                 client_id=app.config["GOOGLE_CLIENT_ID"],
                 client_secret=app.config["GOOGLE_CLIENT_SECRET"],
-                server_metadata_url="https://accounts.google.com/.well-known/openid_configuration",
-                client_kwargs={"scope": "openid email profile"},
+                authorize_url="https://accounts.google.com/o/oauth2/auth",
+                authorize_params=None,
+                access_token_url="https://oauth2.googleapis.com/token",
+                access_token_params=None,
+                refresh_token_url=None,
+                redirect_uri=None,
+                client_kwargs={
+                    "scope": "openid email profile",
+                    "token_endpoint_auth_method": "client_secret_post"
+                },
             )
             app.logger.info("Google OAuth configured successfully")
         except Exception as exc:

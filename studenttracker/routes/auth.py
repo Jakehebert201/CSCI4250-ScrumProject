@@ -1,5 +1,6 @@
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import generate_password_hash
+import requests
 
 from studenttracker.extensions import db, oauth
 from studenttracker.models import Professor, Student
@@ -167,6 +168,12 @@ def oauth_login(user_type):
     try:
         session["oauth_user_type"] = user_type
         redirect_uri = url_for("auth.oauth_callback", _external=True)
+        current_app.logger.info(f"Generated redirect URI: {redirect_uri}")
+        
+        # Ensure consistent redirect URI format
+        redirect_uri = redirect_uri.replace("127.0.0.1", "localhost")
+        current_app.logger.info(f"Final redirect URI: {redirect_uri}")
+        
         return google_client.authorize_redirect(redirect_uri)
     except Exception as exc:
         current_app.logger.error("OAuth login error: %s", exc)
@@ -187,18 +194,52 @@ def oauth_callback():
         return redirect(url_for("auth.login"))
 
     try:
-        token = google_client.authorize_access_token()
-        user_info = token.get("userinfo")
-        if not user_info:
+        # Debug the callback request
+        current_app.logger.info(f"Callback request args: {request.args}")
+        current_app.logger.info(f"Session keys: {list(session.keys())}")
+        
+        # Handle the OAuth callback with manual token exchange to avoid state issues
+        auth_code = request.args.get('code')
+        if not auth_code:
+            raise Exception("No authorization code received")
+        
+        # Exchange the code for tokens manually
+        token_data = {
+            'client_id': current_app.config['GOOGLE_CLIENT_ID'],
+            'client_secret': current_app.config['GOOGLE_CLIENT_SECRET'],
+            'code': auth_code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': url_for('auth.oauth_callback', _external=True)
+        }
+        
+        token_response = requests.post('https://oauth2.googleapis.com/token', data=token_data)
+        token_json = token_response.json()
+        current_app.logger.info(f"Token response: {token_json}")
+        
+        if 'access_token' not in token_json:
+            raise Exception(f"Token exchange failed: {token_json}")
+        
+        # Get user info using the access token
+        user_response = requests.get(
+            'https://www.googleapis.com/oauth2/v2/userinfo',
+            headers={'Authorization': f"Bearer {token_json['access_token']}"}
+        )
+        user_info = user_response.json()
+        current_app.logger.info(f"User info: {user_info}")
+        
+        if not user_info or 'email' not in user_info:
             flash("Failed to get user information from Google")
             return redirect(url_for("auth.login"))
 
         email = user_info.get("email")
-        google_id = user_info.get("sub")
+        google_id = user_info.get("id")  # Google API v2 uses 'id' instead of 'sub'
         first_name = user_info.get("given_name", "")
         last_name = user_info.get("family_name", "")
         profile_picture = user_info.get("picture")
+        
+        # Since session might be empty, we'll default to student but allow override
         user_type = session.get("oauth_user_type", "student")
+        current_app.logger.info(f"Processing OAuth for user_type: {user_type}, email: {email}")
 
         if user_type == "student":
             student = Student.query.filter_by(email=email).first() or Student.query.filter_by(google_id=google_id).first()
@@ -267,6 +308,24 @@ def oauth_callback():
 def login():
     return render_template("login_choice.html")
 
+
+@bp.route("/oauth/test")
+def oauth_test():
+    """Test route to check OAuth configuration"""
+    oauth_enabled = current_app.config.get("OAUTH_ENABLED")
+    client_id = current_app.config.get("GOOGLE_CLIENT_ID")
+    client_secret = current_app.config.get("GOOGLE_CLIENT_SECRET")
+    jinja_oauth = current_app.jinja_env.globals.get("oauth_enabled")
+    
+    return f"""
+    <h1>OAuth Configuration Test</h1>
+    <p><strong>OAUTH_ENABLED (config):</strong> {oauth_enabled}</p>
+    <p><strong>oauth_enabled (jinja):</strong> {jinja_oauth}</p>
+    <p><strong>GOOGLE_CLIENT_ID:</strong> {client_id[:20] if client_id else 'None'}...</p>
+    <p><strong>GOOGLE_CLIENT_SECRET:</strong> {'Set' if client_secret else 'Not Set'}</p>
+    <hr>
+    <p><a href="{url_for('auth.login')}">Back to Login</a></p>
+    """
 
 @bp.route("/logout")
 def logout():
