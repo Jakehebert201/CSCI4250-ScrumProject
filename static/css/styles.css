@@ -7,6 +7,44 @@
     --shadow: 0 20px 45px rgba(11, 61, 145, 0.12);
 }
 
+/* Dark mode variables */
+[data-theme="dark"] {
+    --primary: #4d76f6;
+    --accent: #ffc947;
+    --text: #e4e6ea;
+    --muted: #1a1d23;
+    --surface: #242731;
+    --shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode specific overrides */
+[data-theme="dark"] body {
+    background-color: #181b20;
+}
+
+[data-theme="dark"] .hero {
+    background: linear-gradient(135deg, #1e2a4a, #2d4a7a);
+}
+
+[data-theme="dark"] .table thead {
+    background-color: var(--primary);
+}
+
+[data-theme="dark"] .table tbody tr:hover {
+    background-color: rgba(77, 118, 246, 0.1);
+}
+
+[data-theme="dark"] input, [data-theme="dark"] select {
+    background-color: var(--muted);
+    color: var(--text);
+    border-color: rgba(228, 230, 234, 0.2);
+}
+
+[data-theme="dark"] input:focus, [data-theme="dark"] select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(77, 118, 246, 0.2);
+}
+
 *,
 *::before,
 *::after {
@@ -500,5 +538,136 @@ select:focus {
     .table th,
     .table td {
         padding: 0.5rem;
+    }
+}
+
+/* Dark Mode Toggle */
+.theme-toggle {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1000;
+    background: var(--surface);
+    border: 2px solid var(--primary);
+    border-radius: 50px;
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+/* Adjust position when there's a page header */
+.page-header ~ * .theme-toggle,
+body:has(.page-header) .theme-toggle {
+    top: 100px;
+}
+
+.theme-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.theme-toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background: var(--muted);
+    border-radius: 20px;
+    transition: background 0.3s ease;
+}
+
+.theme-toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .theme-toggle-switch::after {
+    transform: translateX(20px);
+}
+
+.theme-toggle-icon {
+    font-size: 16px;
+    transition: opacity 0.3s ease;
+}
+
+[data-theme="dark"] .theme-toggle .sun-icon {
+    opacity: 0.5;
+}
+
+[data-theme="dark"] .theme-toggle .moon-icon {
+    opacity: 1;
+}
+
+.theme-toggle .sun-icon {
+    opacity: 1;
+}
+
+.theme-toggle .moon-icon {
+    opacity: 0.5;
+}
+
+/* Smooth transitions for theme changes */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Specific positioning for different page layouts */
+.layout:has(.page-header) .theme-toggle {
+    top: 100px;
+}
+
+.layout:has(.hero) .theme-toggle {
+    top: 20px;
+}
+
+.login .theme-toggle {
+    top: 20px;
+}
+
+/* Mobile responsive theme toggle */
+@media (max-width: 768px) {
+    .theme-toggle {
+        top: 70px;
+        right: 10px;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    
+    .layout:has(.page-header) .theme-toggle {
+        top: 80px;
+    }
+    
+    .layout:has(.hero) .theme-toggle,
+    .login .theme-toggle {
+        top: 15px;
+    }
+    
+    .theme-toggle-switch {
+        width: 32px;
+        height: 16px;
+    }
+    
+    .theme-toggle-switch::after {
+        width: 12px;
+        height: 12px;
+        top: 2px;
+    }
+    
+    [data-theme="dark"] .theme-toggle-switch::after {
+        transform: translateX(16px);
     }
 }
