@@ -83,6 +83,16 @@
                 el.style.color = textColor;
             }
         });
+        
+        // Update Leaflet map popups if they exist
+        const leafletPopups = document.querySelectorAll('.leaflet-popup-content');
+        leafletPopups.forEach(popup => {
+            popup.style.color = textColor;
+            const popupElements = popup.querySelectorAll('*');
+            popupElements.forEach(el => {
+                el.style.color = textColor;
+            });
+        });
     }
     
     // Initialize when DOM is ready
