@@ -52,11 +52,37 @@
         // Save the preference
         localStorage.setItem('theme', newTheme);
         
+        // Force update of all text elements that might have inline styles
+        updateTextColors(newTheme);
+        
         // Add a nice animation effect
-        document.body.style.transition = 'background-color 0.3s ease';
+        document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
         setTimeout(() => {
             document.body.style.transition = '';
         }, 300);
+    }
+    
+    // Force update text colors for elements with inline styles
+    function updateTextColors(theme) {
+        const textColor = theme === 'dark' ? '#e4e6ea' : '#1c1c24';
+        const mutedColor = theme === 'dark' ? 'rgba(228, 230, 234, 0.75)' : 'rgba(28, 28, 36, 0.75)';
+        
+        // Update elements with opacity-based colors
+        const elementsWithOpacity = document.querySelectorAll('[style*="opacity"]');
+        elementsWithOpacity.forEach(el => {
+            if (el.style.color && el.style.color.includes('rgba(30, 30, 36')) {
+                el.style.color = theme === 'dark' ? mutedColor : el.style.color;
+            }
+        });
+        
+        // Update any remaining problematic text
+        const allTextElements = document.querySelectorAll('p, span, div, small, label');
+        allTextElements.forEach(el => {
+            const computedStyle = window.getComputedStyle(el);
+            if (computedStyle.color === 'rgb(30, 30, 36)' && theme === 'dark') {
+                el.style.color = textColor;
+            }
+        });
     }
     
     // Initialize when DOM is ready

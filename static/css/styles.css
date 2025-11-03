@@ -45,6 +45,72 @@
     box-shadow: 0 0 0 3px rgba(77, 118, 246, 0.2);
 }
 
+/* Fix text colors in dark mode */
+[data-theme="dark"] p,
+[data-theme="dark"] span,
+[data-theme="dark"] div,
+[data-theme="dark"] small,
+[data-theme="dark"] label {
+    color: var(--text);
+}
+
+/* Fix specific opacity text elements */
+[data-theme="dark"] .login__subtitle,
+[data-theme="dark"] .dashboard__subtitle {
+    color: rgba(228, 230, 234, 0.75);
+}
+
+/* Fix status labels and values */
+[data-theme="dark"] .status__label {
+    color: rgba(228, 230, 234, 0.6);
+}
+
+[data-theme="dark"] .status__value {
+    color: var(--primary);
+}
+
+/* Fix card text */
+[data-theme="dark"] .card p,
+[data-theme="dark"] .card span,
+[data-theme="dark"] .card div {
+    color: var(--text);
+}
+
+/* Fix navigation text */
+[data-theme="dark"] .page-nav a,
+[data-theme="dark"] .site-nav a {
+    color: var(--text);
+}
+
+[data-theme="dark"] .page-nav a:hover,
+[data-theme="dark"] .site-nav a:hover {
+    color: var(--primary);
+}
+
+/* Fix form labels and text */
+[data-theme="dark"] .login__form label,
+[data-theme="dark"] .login__form p {
+    color: var(--text);
+}
+
+/* Fix footer text */
+[data-theme="dark"] .footer,
+[data-theme="dark"] .footer small {
+    color: rgba(228, 230, 234, 0.7);
+}
+
+/* Fix any remaining gray text */
+[data-theme="dark"] *[style*="opacity: 0.8"],
+[data-theme="dark"] *[style*="opacity: 0.7"],
+[data-theme="dark"] *[style*="opacity: 0.6"] {
+    color: var(--text) !important;
+}
+
+/* Fix inline styles that might override */
+[data-theme="dark"] *[style*="color: rgba(30, 30, 36"] {
+    color: var(--text) !important;
+}
+
 *,
 *::before,
 *::after {
