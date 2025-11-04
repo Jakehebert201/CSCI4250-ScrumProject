@@ -65,33 +65,33 @@
             </div>
             <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing your current location"></div>
             <p id="location-message" class="dashboard__message">Requesting location access...</p>
-        </section>
-        <section>
-            <div> <h2> Clock In/Out </h2></div>
-            <div class="clock-button-group">
-                <form id="clock-event-form" data-endpoint="{{ url_for('api.clock_event') }}" hidden>
-                    <input type="hidden" name="event_type" id="clock-event-type">
-                    <input type="hidden" name="timestamp" id="clock-event-timestamp">
-                    <input type="hidden" name="lat" id="clock-event-lat">
-                    <input type="hidden" name="lng" id="clock-event-lng">
-                    <input type="hidden" name="accuracy" id="clock-event-accuracy">
-                </form>
+            <section class="clock-section" aria-labelledby="clock-section-title">
+                <h2 id="clock-section-title" class="clock-section__title">Clock In/Out</h2>
+                <div class="clock-button-group">
+                    <form id="clock-event-form" data-endpoint="{{ url_for('api.clock_event') }}" hidden>
+                        <input type="hidden" name="event_type" id="clock-event-type">
+                        <input type="hidden" name="timestamp" id="clock-event-timestamp">
+                        <input type="hidden" name="lat" id="clock-event-lat">
+                        <input type="hidden" name="lng" id="clock-event-lng">
+                        <input type="hidden" name="accuracy" id="clock-event-accuracy">
+                    </form>
 
-                <button id="clock-in" class="clock-button">
-                    <span class="clock-button__title">Clock In</span>
-                    <span class="clock-button__meta" aria-live="polite">
-                        <span>Last: <time id="clock-in-last" datetime="">Never</time></span>
-                        <span>Elapsed: <span id="clock-in-elapsed">--</span></span>
-                    </span>
-                </button>
-                <button id="clock-out" class="clock-button">
-                    <span class="clock-button__title">Clock Out</span>
-                    <span class="clock-button__meta" aria-live="polite">
-                        <span>Last: <time id="clock-out-last" datetime="">Never</time></span>
-                        <span>Elapsed: <span id="clock-out-elapsed">--</span></span>
-                    </span>
-                </button>
-            </div>
+                    <button id="clock-in" class="clock-button">
+                        <span class="clock-button__title">Clock In</span>
+                        <span class="clock-button__meta" aria-live="polite">
+                            <span>Last: <time id="clock-in-last" datetime="">Never</time></span>
+                            <span>Elapsed: <span id="clock-in-elapsed">--</span></span>
+                        </span>
+                    </button>
+                    <button id="clock-out" class="clock-button">
+                        <span class="clock-button__title">Clock Out</span>
+                        <span class="clock-button__meta" aria-live="polite">
+                            <span>Last: <time id="clock-out-last" datetime="">Never</time></span>
+                            <span>Elapsed: <span id="clock-out-elapsed">--</span></span>
+                        </span>
+                    </button>
+                </div>
+            </section>
         </section>
     </main>
     <footer class="footer">

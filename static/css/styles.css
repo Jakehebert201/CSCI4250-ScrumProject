@@ -420,6 +420,20 @@ main {
     color: rgba(30, 30, 36, 0.75);
 }
 
+
+.clock-section {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(41, 86, 211, 0.12);
+}
+
+.clock-section__title {
+    margin: 0 0 1rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
 .dashboard__message--error {
     color: #c0392b;
     font-weight: 600;
