@@ -329,6 +329,22 @@ def oauth_test():
 
 @bp.route("/logout")
 def logout():
+    # Mark student as inactive if they're logging out
+    if session.get("user_type") == "student" and session.get("user_id"):
+        try:
+            from studenttracker.models import Student
+            from studenttracker.extensions import db
+            from datetime import datetime, timedelta
+            
+            student = Student.query.get(session.get("user_id"))
+            if student:
+                # Set last_seen to 5 minutes ago to ensure they don't appear as "live"
+                student.last_seen = datetime.utcnow() - timedelta(minutes=5)
+                db.session.commit()
+        except Exception as e:
+            # Don't fail logout if there's an error updating student status
+            pass
+    
     session.clear()
     flash("You have been logged out successfully.")
     return redirect(url_for("main.landing_page"))

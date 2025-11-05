@@ -76,9 +76,19 @@ def professor_dashboard():
         # Check if this is a fake student location
         is_fake = location.notes and location.notes.startswith('International student from')
         
-        # Calculate if this location is "live" (within 5 minutes) - but never for fake students
-        time_diff = now - location.created_at
-        is_live = False if is_fake else time_diff.total_seconds() < 300  # 5 minutes
+        # Calculate if this location is "live" based on student's last_seen (heartbeat)
+        # Use student's last_seen if available, otherwise fall back to location timestamp
+        if is_fake:
+            is_live = False
+        else:
+            # Check student's last heartbeat (last_seen) - live if within 3 minutes
+            if location.student.last_seen:
+                time_diff = now - location.student.last_seen
+                is_live = time_diff.total_seconds() < 180  # 3 minutes (heartbeat is every 2 minutes)
+            else:
+                # Fallback to location timestamp if no last_seen
+                time_diff = now - location.created_at
+                is_live = time_diff.total_seconds() < 180  # 3 minutes
         
         recent_locations.append({
             'lat': location.lat,

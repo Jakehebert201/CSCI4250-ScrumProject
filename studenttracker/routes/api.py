@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request, session
 
 from studenttracker.extensions import db
+from sqlalchemy import or_
 from studenttracker.models import ClockEvent, Location, Student, StudentLocation, User
 from studenttracker.utils import add_daily_campus_time, get_city_from_coordinates, parse_event_timestamp
 
@@ -195,8 +196,12 @@ def clear_all_locations():
     try:
         # Delete only real StudentLocation records (not fake demo data)
         # Fake locations have notes starting with "International student from"
+        # Real locations either have no notes (NULL) or notes that don't start with that pattern
         real_locations = StudentLocation.query.filter(
-            ~StudentLocation.notes.like('International student from%')
+            or_(
+                StudentLocation.notes.is_(None),
+                ~StudentLocation.notes.like('International student from%')
+            )
         ).all()
         
         deleted_count = 0
@@ -204,28 +209,14 @@ def clear_all_locations():
             db.session.delete(location)
             deleted_count += 1
         
-        # Clear last known locations only for students who have real location data
-        # Keep fake students' demo locations intact
-        fake_student_emails = [
-            "ahmad.hassan@university.edu",
-            "dmitri.volkov@university.edu", 
-            "emma.thompson@university.edu",
-            "amara.okafor@university.edu",
-            "hiroshi.tanaka@university.edu",
-            "maria.santos@university.edu",
-            "pierre.dubois@university.edu",
-            "priya.sharma@university.edu",
-            "carlos.rodriguez@university.edu",
-            "fatima.alzahra@university.edu",
-            "lars.andersen@university.edu",
-            "chen.wei@university.edu",
-            "sophia.mueller@university.edu",
-            "kofi.asante@university.edu",
-            "isabella.rossi@university.edu"
-        ]
+        # Clear last known locations for students who don't have fake demo data
+        # Identify fake students by checking if they have locations with "International student from" notes
+        fake_student_ids = db.session.query(StudentLocation.student_id).filter(
+            StudentLocation.notes.like('International student from%')
+        ).distinct().subquery()
         
-        # Clear locations for real students only
-        real_students = Student.query.filter(~Student.email.in_(fake_student_emails)).all()
+        # Clear locations for real students only (those not in the fake student list)
+        real_students = Student.query.filter(~Student.id.in_(fake_student_ids)).all()
         for student in real_students:
             student.last_lat = None
             student.last_lng = None
