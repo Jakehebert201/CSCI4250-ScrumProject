@@ -95,62 +95,84 @@
             return;
         }
 
-        const map = L.map(mapElement).setView([39.8283, -98.5795], 4); // Center of US
+        const map = L.map(mapElement).setView([39.8283, -98.5795], 4);
 
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 19,
             attribution: "© OpenStreetMap contributors",
         }).addTo(map);
-        //THIS WORKS! DO NOT EDIT! LINTER HATES IT, BUT IT WORKS!
-        // Hardcoded student locations for immediate map visualization
-        const locations = [
-            // International Students
-            { lat: 34.5553, lng: 69.2075, student: "Ahmad Hassan", city: "Kabul, Afghanistan", time: "2 hours ago" },
-            { lat: 55.7558, lng: 37.6176, student: "Dmitri Volkov", city: "Moscow, Russia", time: "1 day ago" },
-            { lat: 51.5074, lng: -0.1278, student: "Emma Thompson", city: "London, England", time: "3 hours ago" },
-            { lat: 6.5244, lng: 3.3792, student: "Amara Okafor", city: "Lagos, Nigeria", time: "5 hours ago" },
-            { lat: 35.6762, lng: 139.6503, student: "Hiroshi Tanaka", city: "Tokyo, Japan", time: "30 minutes ago" },
-            { lat: -23.5505, lng: -46.6333, student: "Maria Santos", city: "São Paulo, Brazil", time: "4 hours ago" },
-            { lat: 48.8566, lng: 2.3522, student: "Pierre Dubois", city: "Paris, France", time: "2 days ago" },
-            { lat: 28.7041, lng: 77.1025, student: "Priya Sharma", city: "New Delhi, India", time: "6 hours ago" },
-            { lat: 19.4326, lng: -99.1332, student: "Carlos Rodriguez", city: "Mexico City, Mexico", time: "1 hour ago" },
-            { lat: 25.2048, lng: 55.2708, student: "Fatima Al-Zahra", city: "Dubai, UAE", time: "8 hours ago" },
-            { lat: 59.9139, lng: 10.7522, student: "Lars Andersen", city: "Oslo, Norway", time: "12 hours ago" },
-            { lat: 39.9042, lng: 116.4074, student: "Chen Wei", city: "Beijing, China", time: "3 days ago" },
-            { lat: 52.5200, lng: 13.4050, student: "Sophia Mueller", city: "Berlin, Germany", time: "1 day ago" },
-            { lat: 5.6037, lng: -0.1870, student: "Kofi Asante", city: "Accra, Ghana", time: "7 hours ago" },
-            { lat: 41.9028, lng: 12.4964, student: "Isabella Rossi", city: "Rome, Italy", time: "4 hours ago" },
+
+        // Function to format time to EST
+        function formatToEST(date) {
+            const options = {
+                timeZone: 'America/New_York',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            };
+            return date.toLocaleString('en-US', options) + ' EST';
+        }
+        
+        // Function to get relative time
+        function getRelativeTime(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             
-            // US Campus and Cities
-            { lat: 33.7490, lng: -84.3880, student: "John Smith", city: "Atlanta Campus - Library", time: "15 minutes ago" },
-            { lat: 33.7495, lng: -84.3885, student: "Sarah Johnson", city: "Atlanta Campus - Student Center", time: "45 minutes ago" },
-            { lat: 33.7485, lng: -84.3875, student: "Mike Davis", city: "Atlanta Campus - Engineering Building", time: "1 hour ago" },
-            { lat: 40.7128, lng: -74.0060, student: "Emily Wilson", city: "New York City", time: "2 days ago" },
-            { lat: 34.0522, lng: -118.2437, student: "David Brown", city: "Los Angeles", time: "1 day ago" },
-            { lat: 37.7749, lng: -122.4194, student: "Lisa Garcia", city: "San Francisco", time: "3 days ago" },
-            { lat: 41.8781, lng: -87.6298, student: "Robert Miller", city: "Chicago", time: "5 hours ago" },
-            
-            // More International Locations
-            { lat: -33.8688, lng: 151.2093, student: "James Anderson", city: "Sydney, Australia", time: "1 day ago" },
-            { lat: 43.6532, lng: -79.3832, student: "Anna Taylor", city: "Toronto, Canada", time: "6 hours ago" },
-            { lat: 52.3676, lng: 4.9041, student: "Thomas van Berg", city: "Amsterdam, Netherlands", time: "8 hours ago" },
-            { lat: 1.3521, lng: 103.8198, student: "Wei Lin", city: "Singapore", time: "4 hours ago" },
-            { lat: 37.5665, lng: 126.9780, student: "Kim Min-jun", city: "Seoul, South Korea", time: "2 hours ago" },
-            { lat: 22.3193, lng: 114.1694, student: "Li Wei", city: "Hong Kong", time: "3 hours ago" },
-            { lat: 13.7563, lng: 100.5018, student: "Siriporn Nakamura", city: "Bangkok, Thailand", time: "7 hours ago" },
-            
-            // University Towns
-            { lat: 42.3601, lng: -71.0589, student: "Alex Chen", city: "Boston (MIT)", time: "2 days ago" },
-            { lat: 37.4275, lng: -122.1697, student: "Jessica Park", city: "Stanford University", time: "1 day ago" },
-            { lat: 51.7548, lng: -1.2544, student: "Oliver Smith", city: "Oxford University", time: "3 days ago" },
-            { lat: 52.2043, lng: 0.1218, student: "Sophie Williams", city: "Cambridge University", time: "2 days ago" }
+            if (diffMins < 1) return "Just now";
+            if (diffMins < 60) return diffMins + " minute" + (diffMins > 1 ? 's' : '') + " ago";
+            if (diffHours < 24) return diffHours + " hour" + (diffHours > 1 ? 's' : '') + " ago";
+            return diffDays + " day" + (diffDays > 1 ? 's' : '') + " ago";
+        }
+
+        const locations = [];
+        
+        // Add real student locations
+        {% if recent_locations %}
+        {% for location in recent_locations[:20] %}
+        const date{{ loop.index }} = new Date("{{ location.created_at.isoformat() }}Z");
+        locations.push({
+            lat: {{ location.lat }},
+            lng: {{ location.lng }},
+            student: {{ location.student.full_name|tojson }},
+            city: {{ (location.city or 'Unknown')|tojson }},
+            time: formatToEST(date{{ loop.index }}),
+            relativeTime: getRelativeTime(date{{ loop.index }}),
+            type: "real"
+        });
+        {% endfor %}
+        {% endif %}
+        
+        // Add fake locations
+        const fakeLocations = [
+            { lat: 34.5553, lng: 69.2075, student: "Ahmad Hassan", city: "Kabul, Afghanistan", time: "2 hours ago", type: "fake" },
+            { lat: 55.7558, lng: 37.6176, student: "Dmitri Volkov", city: "Moscow, Russia", time: "1 day ago", type: "fake" },
+            { lat: 51.5074, lng: -0.1278, student: "Emma Thompson", city: "London, England", time: "3 hours ago", type: "fake" },
+            { lat: 35.6762, lng: 139.6503, student: "Hiroshi Tanaka", city: "Tokyo, Japan", time: "30 minutes ago", type: "fake" },
+            { lat: 33.7490, lng: -84.3880, student: "John Smith", city: "Atlanta Campus - Library", time: "15 minutes ago", type: "fake" },
+            { lat: 40.7128, lng: -74.0060, student: "Emily Wilson", city: "New York City", time: "2 days ago", type: "fake" }
         ];
+        
+        locations.push(...fakeLocations);
 
         const markers = [];
         locations.forEach(loc => {
+            let popupContent = "<strong>" + loc.student + "</strong><br>" + loc.city;
+            
+            if (loc.type === "real") {
+                popupContent += "<br><small>" + loc.relativeTime + "</small><br><small>" + loc.time + "</small><br><span style='color: red; font-weight: bold;'>🔴 LIVE STUDENT</span>";
+            } else {
+                popupContent += "<br><small>" + loc.time + "</small>";
+            }
+            
             const marker = L.marker([loc.lat, loc.lng])
                 .addTo(map)
-                .bindPopup(`<strong>${loc.student}</strong><br>${loc.city}<br><small>${loc.time}</small>`);
+                .bindPopup(popupContent);
             markers.push(marker);
         });
 
@@ -158,6 +180,8 @@
             const group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds().pad(0.1));
         }
+        
+        console.log("Map loaded with " + locations.length + " total locations");
     });
     </script>
     <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
