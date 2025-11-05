@@ -1,6 +1,7 @@
 from .api import bp as api_bp
 from .auth import bp as auth_bp
 from .dashboards import bp as main_bp
+from .chat import bp as chat_bp
 
 print("🔄 Attempting to import classes blueprint...")
 try:
@@ -21,6 +22,8 @@ def register_blueprints(app):
     print("✅ Auth blueprint registered")
     app.register_blueprint(api_bp, url_prefix="/app")
     print("✅ API blueprint registered")
+    app.register_blueprint(chat_bp)
+    print("✅ Chat blueprint registered")
     
     if classes_bp:
         try:
