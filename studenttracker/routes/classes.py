@@ -220,6 +220,37 @@ def enroll_in_class(class_id):
     if class_obj.enroll_student(student):
         db.session.commit()
         flash(f"Successfully enrolled in {class_obj.full_course_name}!")
+        
+        # Create enrollment notification for student
+        from studenttracker.services.notification_service import notification_service
+        notification_service.create_notification(
+            title="Successfully Enrolled! 🎓",
+            message=f"You've been enrolled in {class_obj.full_course_name}\nRoom: {class_obj.room or 'TBD'} | {class_obj.meeting_days or 'Schedule TBD'}",
+            user_id=student.id,
+            user_type='student',
+            priority='normal',
+            icon='🎓',
+            action_url=f'/app/classes/{class_obj.id}',
+            action_text='View Class',
+            secondary_action_url='/app/dashboard/student',
+            secondary_action_text='Dashboard',
+            data={'type': 'enrollment', 'class_id': class_obj.id},
+            notification_type='enrollment'
+        )
+        
+        # Create notification for professor about new enrollment
+        notification_service.create_notification(
+            title="New Student Enrolled 👥",
+            message=f"{student.full_name} has enrolled in {class_obj.full_course_name}",
+            user_id=class_obj.professor_id,
+            user_type='professor',
+            priority='low',
+            icon='👥',
+            action_url=f'/app/classes/{class_obj.id}',
+            action_text='View Class',
+            data={'type': 'new_enrollment', 'class_id': class_obj.id, 'student_id': student.id},
+            notification_type='enrollment'
+        )
     else:
         if class_obj.is_student_enrolled(student):
             flash("You are already enrolled in this class.")

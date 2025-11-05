@@ -105,3 +105,56 @@ def get_city_from_coordinates(lat, lng):
         if logger:
             logger.warning("Reverse geocode failed: %s", exc)
     return "Unknown"
+
+
+def create_default_notification_types():
+    """Create default notification types"""
+    from .models import NotificationType
+    
+    default_types = [
+        {
+            'name': 'class_reminder',
+            'description': 'Reminders about upcoming classes',
+            'icon': '📚',
+            'color': '#3b82f6'
+        },
+        {
+            'name': 'attendance_alert',
+            'description': 'Alerts about class attendance',
+            'icon': '⚠️',
+            'color': '#f59e0b'
+        },
+        {
+            'name': 'location_alert',
+            'description': 'Location-related notifications',
+            'icon': '📍',
+            'color': '#10b981'
+        },
+        {
+            'name': 'emergency',
+            'description': 'Emergency notifications',
+            'icon': '🚨',
+            'color': '#ef4444'
+        },
+        {
+            'name': 'system',
+            'description': 'System announcements',
+            'icon': '📢',
+            'color': '#6366f1'
+        },
+        {
+            'name': 'enrollment',
+            'description': 'Class enrollment updates',
+            'icon': '🎓',
+            'color': '#8b5cf6'
+        }
+    ]
+    
+    for type_data in default_types:
+        existing = NotificationType.query.filter_by(name=type_data['name']).first()
+        if not existing:
+            notification_type = NotificationType(**type_data)
+            db.session.add(notification_type)
+    
+    db.session.commit()
+    print("✅ Default notification types created")

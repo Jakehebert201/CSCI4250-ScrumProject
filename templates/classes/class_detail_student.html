@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ class_obj.full_course_name }} | Student Location Tracker</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
 </head>
 <body class="layout">
     <header class="page-header">
@@ -12,6 +13,10 @@
         <nav class="page-nav">
             <a href="{{ url_for('main.student_dashboard') }}" class="nav__item">Dashboard</a>
             <a href="/app/classes/" class="nav__item">Classes</a>
+            <a href="/app/notifications" class="nav__item">
+                🔔 Notifications
+                <span class="notification-badge" id="nav-notification-badge" style="display: none;"></span>
+            </a>
             <a href="{{ url_for('main.database') }}" class="nav__item">My Data</a>
             <a href="{{ url_for('auth.logout') }}" class="nav__item">Log Out</a>
         </nav>
@@ -131,5 +136,7 @@
         <small>&copy; 2025 Student Tracker. Built with Flask.</small>
     </footer>
     <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notification-badge.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
 </html>

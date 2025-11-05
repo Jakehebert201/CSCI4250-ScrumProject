@@ -14,6 +14,10 @@
         <nav class="page-nav">
             <a href="{{ url_for('main.student_dashboard') }}" class="nav__item nav__item--active">Dashboard</a>
             <a href="/app/classes/" class="nav__item">Classes</a>
+            <a href="/app/notifications" class="nav__item">
+                🔔 Notifications
+                <span class="notification-badge" id="nav-notification-badge" style="display: none;"></span>
+            </a>
             <a href="{{ url_for('main.database') }}" class="nav__item">My Data</a>
             <a href="{{ url_for('auth.logout') }}" class="nav__item">Log Out</a>
         </nav>
@@ -345,6 +349,7 @@
     }, 120000); // 2 minutes
     </script>
     <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notification-badge.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
 </html>

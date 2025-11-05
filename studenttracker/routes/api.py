@@ -51,6 +51,21 @@ def update_location():
         db.session.add(location)
         db.session.commit()
 
+        # Create location sharing notification for student
+        from studenttracker.services.notification_service import notification_service
+        notification_service.create_notification(
+            title="Location Shared Successfully! 📍",
+            message=f"Your location has been shared: {city or 'Unknown location'}",
+            user_id=student.id,
+            user_type='student',
+            priority='low',
+            icon='📍',
+            action_url='/app/dashboard/student',
+            action_text='View Dashboard',
+            data={'type': 'location_shared', 'city': city},
+            notification_type='location_alert'
+        )
+
         return jsonify({"success": True, "city": city}), 200
 
     user = User.query.get(session.get("user_id"))

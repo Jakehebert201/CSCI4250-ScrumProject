@@ -781,6 +781,10 @@ def create_app():
         
         # Create fake professors and classes for testing
         create_sample_data()
+        
+        # Setup notifications
+        from studenttracker.utils import create_default_notification_types
+        create_default_notification_types()
 
     register_blueprints(app)
 

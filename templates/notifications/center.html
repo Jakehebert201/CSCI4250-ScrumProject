@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications | Student Location Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/notifications.css') }}">
+</head>
+<body class="layout">
+    <header class="page-header">
+        <a class="brand" href="{{ url_for('main.landing_page') }}">Student Location Tracker</a>
+        <nav class="page-nav">
+            {% if session.user_type == 'student' %}
+                <a href="{{ url_for('main.student_dashboard') }}" class="nav__item">Dashboard</a>
+                <a href="/app/classes/" class="nav__item">Classes</a>
+            {% else %}
+                <a href="{{ url_for('main.professor_dashboard') }}" class="nav__item">Dashboard</a>
+                <a href="/app/classes/" class="nav__item">My Classes</a>
+            {% endif %}
+            <a href="{{ url_for('notifications.notification_center') }}" class="nav__item nav__item--active">Notifications</a>
+            <a href="{{ url_for('main.database') }}" class="nav__item">Database</a>
+            <a href="{{ url_for('auth.logout') }}" class="nav__item">Log Out</a>
+        </nav>
+    </header>
+
+    <main class="notification-center">
+        <div class="notification-header">
+            <div class="notification-title">
+                <h1>🔔 Notifications</h1>
+                <span class="notification-count" id="notification-count">0</span>
+            </div>
+            
+            <div class="notification-controls">
+                <button class="btn btn-secondary" id="mark-all-read-btn">
+                    ✓ Mark All Read
+                </button>
+                <button class="btn btn-secondary" id="preferences-btn">
+                    ⚙️ Settings
+                </button>
+                {% if session.user_type == 'professor' %}
+                <button class="btn btn-primary" id="broadcast-btn">
+                    📢 Send Broadcast
+                </button>
+                {% endif %}
+                <button class="btn btn-secondary" id="test-notification-btn">
+                    🧪 Test
+                </button>
+            </div>
+        </div>
+
+        <div class="notification-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="unread">Unread</button>
+            <button class="filter-btn" data-filter="class">Classes</button>
+            <button class="filter-btn" data-filter="location">Location</button>
+            <button class="filter-btn" data-filter="emergency">Emergency</button>
+        </div>
+
+        <div class="notification-list" id="notification-list">
+            <div class="loading-spinner" id="loading-spinner">
+                <div class="spinner"></div>
+                <p>Loading notifications...</p>
+            </div>
+        </div>
+
+        <div class="notification-empty" id="notification-empty" style="display: none;">
+            <div class="empty-icon">🔔</div>
+            <h3>No notifications yet</h3>
+            <p>You'll see important updates and alerts here.</p>
+        </div>
+    </main>
+
+    <!-- Notification Preferences Modal -->
+    <div class="modal" id="preferences-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Notification Preferences</h2>
+                <button class="modal-close" id="preferences-close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="preferences-form">
+                    <div class="preference-section">
+                        <h3>Notification Channels</h3>
+                        <label class="preference-item">
+                            <input type="checkbox" id="browser-push-enabled">
+                            <span class="checkmark"></span>
+                            Browser Push Notifications
+                        </label>
+                        <label class="preference-item">
+                            <input type="checkbox" id="in-app-enabled">
+                            <span class="checkmark"></span>
+                            In-App Notifications
+                        </label>
+                        <label class="preference-item">
+                            <input type="checkbox" id="email-enabled">
+                            <span class="checkmark"></span>
+                            Email Notifications
+                        </label>
+                    </div>
+
+                    <div class="preference-section">
+                        <h3>Class Notifications</h3>
+                        <label class="preference-item">
+                            <input type="checkbox" id="class-reminders-enabled">
+                            <span class="checkmark"></span>
+                            Class Reminders
+                        </label>
+                        <div class="preference-input">
+                            <label for="class-reminder-minutes">Remind me</label>
+                            <select id="class-reminder-minutes">
+                                <option value="5">5 minutes before</option>
+                                <option value="10">10 minutes before</option>
+                                <option value="15">15 minutes before</option>
+                                <option value="30">30 minutes before</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="preference-section">
+                        <h3>Location & Attendance</h3>
+                        <label class="preference-item">
+                            <input type="checkbox" id="location-alerts-enabled">
+                            <span class="checkmark"></span>
+                            Location Alerts
+                        </label>
+                        {% if session.user_type == 'professor' %}
+                        <label class="preference-item">
+                            <input type="checkbox" id="attendance-alerts-enabled">
+                            <span class="checkmark"></span>
+                            Attendance Alerts
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="preference-section">
+                        <h3>Quiet Hours</h3>
+                        <div class="quiet-hours">
+                            <div class="preference-input">
+                                <label for="quiet-hours-start">From</label>
+                                <input type="time" id="quiet-hours-start">
+                            </div>
+                            <div class="preference-input">
+                                <label for="quiet-hours-end">To</label>
+                                <input type="time" id="quiet-hours-end">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="preference-section">
+                        <h3>Emergency Notifications</h3>
+                        <label class="preference-item">
+                            <input type="checkbox" id="emergency-notifications-enabled">
+                            <span class="checkmark"></span>
+                            Emergency Alerts (Always enabled for safety)
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="preferences-cancel">Cancel</button>
+                <button class="btn btn-primary" id="preferences-save">Save Preferences</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Broadcast Modal (Professors only) -->
+    {% if session.user_type == 'professor' %}
+    <div class="modal" id="broadcast-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📢 Send Broadcast Notification</h2>
+                <button class="modal-close" id="broadcast-close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="broadcast-form">
+                    <div class="form-group">
+                        <label for="broadcast-title">Title</label>
+                        <input type="text" id="broadcast-title" placeholder="Campus Announcement" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="broadcast-message">Message</label>
+                        <textarea id="broadcast-message" rows="4" placeholder="Enter your message..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="broadcast-target">Send to</label>
+                        <select id="broadcast-target">
+                            <option value="">All Users</option>
+                            <option value="student">Students Only</option>
+                            <option value="professor">Professors Only</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="broadcast-priority">Priority</label>
+                        <select id="broadcast-priority">
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="broadcast-cancel">Cancel</button>
+                <button class="btn btn-primary" id="broadcast-send">Send Broadcast</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <footer class="footer">
+        <small>&copy; 2025 Student Tracker. Built with Flask.</small>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+</body>
+</html>

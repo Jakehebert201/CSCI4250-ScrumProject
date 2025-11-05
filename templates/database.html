@@ -1,25 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
-  <title>Database - Student Tracker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database | Student Location Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
 </head>
 <body class="layout">
-  <nav class="site-nav">
-    {% if user_type == 'student' %}
-      <a class="nav__item" href="{{ url_for('main.student_dashboard') }}">Dashboard</a>
-    {% elif user_type == 'professor' %}
-      <a class="nav__item" href="{{ url_for('main.professor_dashboard') }}">Dashboard</a>
-    {% else %}
-      <a class="nav__item" href="{{ url_for('main.dashboard') }}">Dashboard</a>
-    {% endif %}
-    <a class="nav__item nav__item--active" href="{{ url_for('main.database') }}">Database</a>
-    <a class="nav__item" href="{{ url_for('auth.logout') }}">Logout</a>
-  </nav>
+    <header class="page-header">
+        <a class="brand" href="{{ url_for('main.landing_page') }}">Student Location Tracker</a>
+        <nav class="page-nav">
+            {% if user_type == 'student' %}
+                <a href="{{ url_for('main.student_dashboard') }}" class="nav__item">Dashboard</a>
+                <a href="/app/classes/" class="nav__item">Classes</a>
+                <a href="/app/notifications" class="nav__item">
+                    🔔 Notifications
+                    <span class="notification-badge" id="nav-notification-badge" style="display: none;"></span>
+                </a>
+                <a href="{{ url_for('main.database') }}" class="nav__item nav__item--active">My Data</a>
+            {% elif user_type == 'professor' %}
+                <a href="{{ url_for('main.professor_dashboard') }}" class="nav__item">Dashboard</a>
+                <a href="/app/classes/" class="nav__item">My Classes</a>
+                <a href="/app/notifications" class="nav__item">
+                    🔔 Notifications
+                    <span class="notification-badge" id="nav-notification-badge" style="display: none;"></span>
+                </a>
+                <a href="{{ url_for('main.database') }}" class="nav__item nav__item--active">Database</a>
+            {% else %}
+                <a href="{{ url_for('main.dashboard') }}" class="nav__item">Dashboard</a>
+                <a href="/app/notifications" class="nav__item">
+                    🔔 Notifications
+                    <span class="notification-badge" id="nav-notification-badge" style="display: none;"></span>
+                </a>
+                <a href="{{ url_for('main.database') }}" class="nav__item nav__item--active">Database</a>
+            {% endif %}
+            <a href="{{ url_for('auth.logout') }}" class="nav__item">Log Out</a>
+        </nav>
+    </header>
 
-  <main class="panel">
+    <main class="database-content">
     {% if user_type == 'professor' %}
       <h1>Database — All Data</h1>
       
@@ -206,7 +226,14 @@
         {% endif %}
       </tbody>
     </table>
-  </main>
-  <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    </main>
+    
+    <footer class="footer">
+        <small>&copy; 2025 Student Tracker. Built with Flask.</small>
+    </footer>
+    
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notification-badge.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
 </html>

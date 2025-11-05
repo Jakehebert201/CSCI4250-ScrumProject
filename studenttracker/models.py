@@ -5,6 +5,8 @@ from werkzeug.security import check_password_hash
 from .extensions import db
 
 
+
+
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.String(20), unique=True, nullable=True)
@@ -204,3 +206,181 @@ class Location(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     user = db.relationship("User", backref=db.backref("locations", lazy="dynamic"))
+
+
+# Notification Models
+class NotificationType(db.Model):
+    __tablename__ = 'notification_type'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    description = db.Column(db.String(200))
+    icon = db.Column(db.String(20), default='🔔')
+    color = db.Column(db.String(7), default='#3b82f6')  # Hex color
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<NotificationType {self.name}>'
+
+
+class Notification(db.Model):
+    __tablename__ = 'notification'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Recipients
+    user_id = db.Column(db.Integer, nullable=True)  # Specific user (null for broadcast)
+    user_type = db.Column(db.String(20), nullable=True)  # 'student', 'professor', or null for all
+    
+    # Content
+    title = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    icon = db.Column(db.String(20), default='🔔')
+    
+    # Type and Priority
+    type_id = db.Column(db.Integer, db.ForeignKey('notification_type.id'), nullable=True)
+    priority = db.Column(db.String(20), default='normal')  # 'low', 'normal', 'high', 'urgent'
+    
+    # Actions
+    action_url = db.Column(db.String(200), nullable=True)
+    action_text = db.Column(db.String(50), nullable=True)
+    secondary_action_url = db.Column(db.String(200), nullable=True)
+    secondary_action_text = db.Column(db.String(50), nullable=True)
+    
+    # Metadata
+    data = db.Column(db.JSON, nullable=True)  # Additional data (class_id, location, etc.)
+    
+    # Status
+    is_read = db.Column(db.Boolean, default=False)
+    is_sent = db.Column(db.Boolean, default=False)
+    sent_at = db.Column(db.DateTime, nullable=True)
+    read_at = db.Column(db.DateTime, nullable=True)
+    
+    # Scheduling
+    scheduled_for = db.Column(db.DateTime, nullable=True)  # For future notifications
+    expires_at = db.Column(db.DateTime, nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    notification_type = db.relationship('NotificationType', backref='notifications')
+    
+    @property
+    def is_expired(self):
+        return self.expires_at and datetime.utcnow() > self.expires_at
+    
+    @property
+    def priority_color(self):
+        colors = {
+            'low': '#6b7280',
+            'normal': '#3b82f6', 
+            'high': '#f59e0b',
+            'urgent': '#ef4444'
+        }
+        return colors.get(self.priority, '#3b82f6')
+    
+    @property
+    def priority_icon(self):
+        icons = {
+            'low': '💬',
+            'normal': '🔔',
+            'high': '⚠️',
+            'urgent': '🚨'
+        }
+        return icons.get(self.priority, '🔔')
+    
+    def mark_as_read(self):
+        self.is_read = True
+        self.read_at = datetime.utcnow()
+        db.session.commit()
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'message': self.message,
+            'icon': self.icon,
+            'priority': self.priority,
+            'priority_color': self.priority_color,
+            'priority_icon': self.priority_icon,
+            'action_url': self.action_url,
+            'action_text': self.action_text,
+            'secondary_action_url': self.secondary_action_url,
+            'secondary_action_text': self.secondary_action_text,
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat(),
+            'data': self.data
+        }
+    
+    def __repr__(self):
+        return f'<Notification {self.title}>'
+
+
+class UserNotificationPreference(db.Model):
+    __tablename__ = 'user_notification_preference'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    user_type = db.Column(db.String(20), nullable=False)  # 'student' or 'professor'
+    
+    # Notification channels
+    browser_push_enabled = db.Column(db.Boolean, default=True)
+    email_enabled = db.Column(db.Boolean, default=True)
+    in_app_enabled = db.Column(db.Boolean, default=True)
+    
+    # Notification types (JSON array of enabled type IDs)
+    enabled_types = db.Column(db.JSON, default=lambda: [])
+    
+    # Timing preferences
+    quiet_hours_start = db.Column(db.Time, nullable=True)  # e.g., 22:00
+    quiet_hours_end = db.Column(db.Time, nullable=True)    # e.g., 07:00
+    
+    # Frequency settings
+    digest_frequency = db.Column(db.String(20), default='daily')  # 'realtime', 'hourly', 'daily', 'weekly'
+    
+    # Class-specific settings
+    class_reminders_enabled = db.Column(db.Boolean, default=True)
+    class_reminder_minutes = db.Column(db.Integer, default=15)  # Minutes before class
+    
+    # Location settings
+    location_alerts_enabled = db.Column(db.Boolean, default=True)
+    attendance_alerts_enabled = db.Column(db.Boolean, default=True)
+    
+    # Emergency settings
+    emergency_notifications_enabled = db.Column(db.Boolean, default=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<UserNotificationPreference user_id={self.user_id}>'
+
+
+class PushSubscription(db.Model):
+    __tablename__ = 'push_subscription'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    user_type = db.Column(db.String(20), nullable=False)
+    
+    # Push subscription data
+    endpoint = db.Column(db.Text, nullable=False)
+    p256dh_key = db.Column(db.Text, nullable=False)
+    auth_key = db.Column(db.Text, nullable=False)
+    
+    # Browser/device info
+    user_agent = db.Column(db.Text, nullable=True)
+    browser = db.Column(db.String(50), nullable=True)
+    device_type = db.Column(db.String(20), nullable=True)  # 'desktop', 'mobile', 'tablet'
+    
+    # Status
+    is_active = db.Column(db.Boolean, default=True)
+    last_used = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<PushSubscription user_id={self.user_id}>'
