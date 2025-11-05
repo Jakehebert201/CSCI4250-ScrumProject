@@ -629,23 +629,27 @@ def create_app():
                     
             if created_count > 0:
                 db.session.commit()
-                
-                # Now create location entries for the new students
-                for student_data in students_data:
-                    student = Student.query.filter_by(email=student_data["email"]).first()
-                    if student and not StudentLocation.query.filter_by(student_id=student.id).first():
-                        location = StudentLocation(
-                            student_id=student.id,
-                            lat=student_data["lat"],
-                            lng=student_data["lng"],
-                            accuracy=random.randint(10, 50),
-                            city=student_data["city"],
-                            notes=f"International student from {student_data['country']}"
-                        )
-                        db.session.add(location)
-                
-                db.session.commit()
                 app.logger.info(f"Created {created_count} diverse international students")
+                
+            # Always ensure all fake students have location entries (even if students already existed)
+            locations_created = 0
+            for student_data in students_data:
+                student = Student.query.filter_by(email=student_data["email"]).first()
+                if student and not StudentLocation.query.filter_by(student_id=student.id).first():
+                    location = StudentLocation(
+                        student_id=student.id,
+                        lat=student_data["lat"],
+                        lng=student_data["lng"],
+                        accuracy=random.randint(10, 50),
+                        city=student_data["city"],
+                        notes=f"International student from {student_data['country']}"
+                    )
+                    db.session.add(location)
+                    locations_created += 1
+            
+            if locations_created > 0:
+                db.session.commit()
+                app.logger.info(f"Created {locations_created} location records for fake students")
                 
                 # Create additional fake locations to populate the map
                 create_additional_fake_locations()

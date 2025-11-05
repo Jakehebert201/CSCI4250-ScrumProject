@@ -153,3 +153,122 @@ def clock_event():
         ),
         200,
     )
+
+@bp.route("/clear-locations", methods=["POST"])
+def clear_student_locations():
+    """Clear all locations for the current student"""
+    if not session.get("user_id") or session.get("user_type") != "student":
+        return jsonify({"error": "not authenticated as student"}), 401
+    
+    try:
+        student_id = session.get("user_id")
+        
+        # Delete all StudentLocation records for this student
+        deleted_count = StudentLocation.query.filter_by(student_id=student_id).delete()
+        
+        # Clear the student's last known location
+        student = Student.query.get(student_id)
+        if student:
+            student.last_lat = None
+            student.last_lng = None
+            student.last_accuracy = None
+            student.last_seen = None
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Cleared {deleted_count} location records"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/clear-all-locations", methods=["POST"])
+def clear_all_locations():
+    """Clear real student locations only (Professor only) - keeps fake demo data"""
+    if not session.get("user_id") or session.get("user_type") != "professor":
+        return jsonify({"error": "not authenticated as professor"}), 401
+    
+    try:
+        # Delete only real StudentLocation records (not fake demo data)
+        # Fake locations have notes starting with "International student from"
+        real_locations = StudentLocation.query.filter(
+            ~StudentLocation.notes.like('International student from%')
+        ).all()
+        
+        deleted_count = 0
+        for location in real_locations:
+            db.session.delete(location)
+            deleted_count += 1
+        
+        # Clear last known locations only for students who have real location data
+        # Keep fake students' demo locations intact
+        fake_student_emails = [
+            "ahmad.hassan@university.edu",
+            "dmitri.volkov@university.edu", 
+            "emma.thompson@university.edu",
+            "amara.okafor@university.edu",
+            "hiroshi.tanaka@university.edu",
+            "maria.santos@university.edu",
+            "pierre.dubois@university.edu",
+            "priya.sharma@university.edu",
+            "carlos.rodriguez@university.edu",
+            "fatima.alzahra@university.edu",
+            "lars.andersen@university.edu",
+            "chen.wei@university.edu",
+            "sophia.mueller@university.edu",
+            "kofi.asante@university.edu",
+            "isabella.rossi@university.edu"
+        ]
+        
+        # Clear locations for real students only
+        real_students = Student.query.filter(~Student.email.in_(fake_student_emails)).all()
+        for student in real_students:
+            student.last_lat = None
+            student.last_lng = None
+            student.last_accuracy = None
+            student.last_seen = None
+        
+        # Also clear legacy Location records if any exist (but keep fake ones)
+        deleted_legacy = Location.query.delete()
+        
+        # Clear legacy User locations
+        users = User.query.all()
+        for user in users:
+            user.last_lat = None
+            user.last_lng = None
+            user.last_accuracy = None
+            user.last_seen = None
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Cleared {deleted_count} real student locations (kept demo data intact)"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/heartbeat", methods=["POST"])
+def heartbeat():
+    """Update student's last seen timestamp to track active sessions"""
+    if not session.get("user_id") or session.get("user_type") != "student":
+        return jsonify({"error": "not authenticated as student"}), 401
+    
+    try:
+        student = Student.query.get(session.get("user_id"))
+        if student:
+            student.last_seen = datetime.utcnow()
+            db.session.commit()
+            return jsonify({"success": True})
+        else:
+            return jsonify({"error": "student not found"}), 404
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

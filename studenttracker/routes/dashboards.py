@@ -35,9 +35,13 @@ def student_dashboard():
         flash("Session invalid — please log in again.")
         return redirect(url_for("auth.login_student"))
 
+    # Get student's recent locations
+    student_locations = StudentLocation.query.filter_by(student_id=student.id).order_by(StudentLocation.created_at.desc()).limit(20).all()
+
     return render_template(
         "student_dashboard.html",
         student=student,
+        student_locations=student_locations,
         username=session.get("username"),
         full_name=session.get("full_name"),
         last_lat=student.last_lat,
@@ -59,7 +63,20 @@ def professor_dashboard():
         return redirect(url_for("auth.login_professor"))
 
     classes = professor.classes.all()
-    recent_locations = StudentLocation.query.order_by(StudentLocation.created_at.desc()).limit(50).all()
+    recent_locations_query = StudentLocation.query.order_by(StudentLocation.created_at.desc()).limit(100).all()
+    
+    # Serialize location data for JavaScript
+    recent_locations = []
+    for location in recent_locations_query:
+        recent_locations.append({
+            'lat': location.lat,
+            'lng': location.lng,
+            'city': location.city,
+            'created_at': location.created_at.isoformat(),
+            'student': {
+                'full_name': location.student.full_name
+            }
+        })
 
     return render_template(
         "professor_dashboard.html",
@@ -68,6 +85,7 @@ def professor_dashboard():
         full_name=session.get("full_name"),
         classes=classes,
         recent_locations=recent_locations,
+        recent_locations_raw=recent_locations_query,  # For the activity list
     )
 
 

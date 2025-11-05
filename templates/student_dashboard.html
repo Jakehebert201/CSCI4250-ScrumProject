@@ -65,6 +65,18 @@
             </div>
             <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing your current location"></div>
             <p id="location-message" class="dashboard__message">Requesting location access...</p>
+            
+            <!-- Student's Location History Map -->
+            <div style="margin-top: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; color: var(--primary);">📍 My Location History</h3>
+                    <button id="clear-locations-btn" class="btn" style="background: #ef4444; color: white;">
+                        🗑️ Clear My Locations
+                    </button>
+                </div>
+                <div id="history-map" class="dashboard__map" role="img" aria-label="Map showing your location history"></div>
+                <p class="dashboard__message">Your location check-ins and movement history.</p>
+            </div>
             <section class="clock-section" aria-labelledby="clock-section-title">
                 <h2 id="clock-section-title" class="clock-section__title">Clock In/Out</h2>
                 <div class="clock-button-group">
@@ -242,6 +254,94 @@
       clockInStartedAt = null;
       sendClockEvent('clock_out');
     });
+    
+    // Student Location History Map
+    const historyMapElement = document.getElementById("history-map");
+    if (historyMapElement && typeof L !== "undefined") {
+        const historyMap = L.map(historyMapElement).setView([39.8283, -98.5795], 4);
+        
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "© OpenStreetMap contributors",
+        }).addTo(historyMap);
+        
+        // Add student's location history
+        const studentLocations = [];
+        {% if student_locations %}
+        {% for location in student_locations %}
+        const date{{ loop.index }} = new Date("{{ location.created_at.isoformat() }}Z");
+        studentLocations.push({
+            lat: {{ location.lat }},
+            lng: {{ location.lng }},
+            city: {{ (location.city or 'Unknown')|tojson }},
+            time: date{{ loop.index }}.toLocaleString('en-US', {
+                timeZone: 'America/New_York',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            }) + ' EST',
+            notes: {{ (location.notes or '')|tojson }}
+        });
+        {% endfor %}
+        {% endif %}
+        
+        const historyMarkers = [];
+        studentLocations.forEach((loc, index) => {
+            const popupContent = `<strong>Your Location</strong><br>${loc.city}<br><small>${loc.time}</small>${loc.notes ? '<br><small>' + loc.notes + '</small>' : ''}`;
+            
+            const marker = L.marker([loc.lat, loc.lng])
+                .addTo(historyMap)
+                .bindPopup(popupContent);
+            historyMarkers.push(marker);
+        });
+        
+        if (historyMarkers.length > 0) {
+            const group = new L.featureGroup(historyMarkers);
+            historyMap.fitBounds(group.getBounds().pad(0.1));
+        } else {
+            // If no history, center on current location if available
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    historyMap.setView([pos.coords.latitude, pos.coords.longitude], 10);
+                });
+            }
+        }
+    }
+    
+    // Clear locations functionality
+    document.getElementById('clear-locations-btn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all your location history? This cannot be undone.')) {
+            fetch('/app/clear-locations', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Location history cleared successfully!');
+                    location.reload();
+                } else {
+                    alert('Failed to clear locations: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Error clearing locations:', err);
+                alert('Failed to clear locations. Please try again.');
+            });
+        }
+    });
+    
+    // Send heartbeat every 2 minutes to track active sessions
+    setInterval(function() {
+        fetch('/app/heartbeat', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }
+        }).catch(err => console.debug('Heartbeat failed:', err));
+    }, 120000); // 2 minutes
     </script>
     <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
 </body>
