@@ -636,13 +636,18 @@ def create_app():
             for student_data in students_data:
                 student = Student.query.filter_by(email=student_data["email"]).first()
                 if student and not StudentLocation.query.filter_by(student_id=student.id).first():
+                    # Create fake location with older timestamp (6+ hours ago) so it appears as "last active"
+                    hours_ago = random.randint(6, 48)  # 6 to 48 hours ago
+                    old_timestamp = datetime.utcnow() - timedelta(hours=hours_ago)
+                    
                     location = StudentLocation(
                         student_id=student.id,
                         lat=student_data["lat"],
                         lng=student_data["lng"],
                         accuracy=random.randint(10, 50),
                         city=student_data["city"],
-                        notes=f"International student from {student_data['country']}"
+                        notes=f"International student from {student_data['country']}",
+                        created_at=old_timestamp
                     )
                     db.session.add(location)
                     locations_created += 1

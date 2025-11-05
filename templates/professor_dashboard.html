@@ -81,9 +81,14 @@
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; margin-bottom: 1rem;">
                 <h3 style="margin: 0; color: var(--primary);">🗺️ Student Location Map</h3>
-                <button id="clear-all-locations-btn" class="btn" style="background: #ef4444; color: white;">
-                    🗑️ Clear Real Student Locations
-                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="toggle-inactive-btn" class="btn" style="background: var(--primary); color: white;">
+                        👁️ Show Live Only
+                    </button>
+                    <button id="clear-all-locations-btn" class="btn" style="background: #ef4444; color: white;">
+                        🗑️ Clear Real Student Locations
+                    </button>
+                </div>
             </div>
             <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing recent student locations"></div>
             <p class="dashboard__message">Map shows recent student check-ins across campus.</p>
@@ -144,9 +149,6 @@
         serverLocations.forEach(function(location, index) {
             if (location.lat && location.lng) {
                 const locationDate = new Date(location.created_at + 'Z');
-                const now = new Date();
-                const diffMinutes = (now - locationDate) / (1000 * 60);
-                const isLive = diffMinutes < 5; // Consider "live" if location updated within 5 minutes
                 
                 locations.push({
                     lat: location.lat,
@@ -155,37 +157,62 @@
                     city: location.city || 'Unknown',
                     time: formatToEST(locationDate),
                     relativeTime: getRelativeTime(locationDate),
-                    isLive: isLive,
-                    type: "real"
+                    isLive: location.is_live,
+                    isFake: location.is_fake,
+                    type: location.is_fake ? "fake" : "real"
                 });
             }
         });
         
         // All locations now come from the database (both real and fake)
 
+        let showInactiveLocations = true;
         const markers = [];
-        locations.forEach(loc => {
-            let popupContent = "<strong>" + loc.student + "</strong><br>" + loc.city;
-            popupContent += "<br><small>" + loc.relativeTime + "</small><br><small>" + loc.time + "</small>";
+        
+        function createMarkers() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers.length = 0;
             
-            if (loc.isLive) {
-                popupContent += "<br><span style='color: #22c55e; font-weight: bold;'>🟢 LIVE NOW</span>";
-            } else {
-                popupContent += "<br><span style='color: #f59e0b; font-weight: bold;'>🟡 LAST ACTIVE</span>";
-            }
+            const filteredLocations = showInactiveLocations ? 
+                locations : 
+                locations.filter(loc => loc.isLive);
             
-            const marker = L.marker([loc.lat, loc.lng])
-                .addTo(map)
-                .bindPopup(popupContent);
-            markers.push(marker);
-        });
+            filteredLocations.forEach(loc => {
+                let popupContent = "<strong>" + loc.student + "</strong><br>" + loc.city;
+                popupContent += "<br><small>" + loc.relativeTime + "</small><br><small>" + loc.time + "</small>";
+                
+                if (loc.isLive) {
+                    popupContent += "<br><span style='color: #22c55e; font-weight: bold;'>🟢 LIVE NOW</span>";
+                } else {
+                    popupContent += "<br><span style='color: #f59e0b; font-weight: bold;'>🟡 LAST ACTIVE</span>";
+                }
+                
+                // Use different marker colors for live vs inactive
+                const marker = L.marker([loc.lat, loc.lng])
+                    .addTo(map)
+                    .bindPopup(popupContent);
+                markers.push(marker);
+            });
 
-        if (markers.length > 0) {
-            const group = new L.featureGroup(markers);
-            map.fitBounds(group.getBounds().pad(0.1));
+            if (markers.length > 0) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
         }
         
+        // Initial marker creation
+        createMarkers();
+        
         console.log("Map loaded with " + locations.length + " total locations");
+        
+        // Toggle inactive locations functionality
+        document.getElementById('toggle-inactive-btn').addEventListener('click', function() {
+            showInactiveLocations = !showInactiveLocations;
+            this.textContent = showInactiveLocations ? '👁️ Show Live Only' : '👁️ Show All';
+            this.style.background = showInactiveLocations ? 'var(--primary)' : '#22c55e';
+            createMarkers();
+        });
         
         // Clear real locations functionality (Professor only)
         document.getElementById('clear-all-locations-btn').addEventListener('click', function() {

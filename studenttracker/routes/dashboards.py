@@ -63,16 +63,30 @@ def professor_dashboard():
         return redirect(url_for("auth.login_professor"))
 
     classes = professor.classes.all()
+    from datetime import datetime, timedelta
+    
+    # Get all locations, but prioritize recent ones
     recent_locations_query = StudentLocation.query.order_by(StudentLocation.created_at.desc()).limit(100).all()
     
     # Serialize location data for JavaScript
     recent_locations = []
+    now = datetime.utcnow()
+    
     for location in recent_locations_query:
+        # Check if this is a fake student location
+        is_fake = location.notes and location.notes.startswith('International student from')
+        
+        # Calculate if this location is "live" (within 5 minutes) - but never for fake students
+        time_diff = now - location.created_at
+        is_live = False if is_fake else time_diff.total_seconds() < 300  # 5 minutes
+        
         recent_locations.append({
             'lat': location.lat,
             'lng': location.lng,
             'city': location.city,
             'created_at': location.created_at.isoformat(),
+            'is_live': is_live,
+            'is_fake': is_fake,
             'student': {
                 'full_name': location.student.full_name
             }

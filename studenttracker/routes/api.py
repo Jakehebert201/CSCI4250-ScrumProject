@@ -232,6 +232,9 @@ def clear_all_locations():
             student.last_accuracy = None
             student.last_seen = None
         
+        # Keep all fake student locations as "last active" (older timestamps)
+        # This ensures they never appear as "live" when toggling the view
+        
         # Also clear legacy Location records if any exist (but keep fake ones)
         deleted_legacy = Location.query.delete()
         
@@ -247,7 +250,7 @@ def clear_all_locations():
         
         return jsonify({
             "success": True, 
-            "message": f"Cleared {deleted_count} real student locations (kept demo data intact)"
+            "message": f"Cleared {deleted_count} real student locations. Demo students remain as 'last active'."
         })
         
     except Exception as e:
