@@ -816,6 +816,25 @@ body:has(.page-header) .theme-toggle {
     }
 }
 
+/* Dark mode clock button adjustments */
+[data-theme="dark"] .clock-button,
+[data-theme="dark"] #clock-in.clock-button,
+[data-theme="dark"] #clock-out.clock-button {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .clock-button .clock-button__title,
+[data-theme="dark"] #clock-in.clock-button .clock-button__title,
+[data-theme="dark"] #clock-out.clock-button .clock-button__title {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .clock-button__meta,
+[data-theme="dark"] #clock-in.clock-button .clock-button__meta,
+[data-theme="dark"] #clock-out.clock-button .clock-button__meta {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
 /* Mobile responsive theme toggle */
 @media (max-width: 768px) {
     .theme-toggle {
