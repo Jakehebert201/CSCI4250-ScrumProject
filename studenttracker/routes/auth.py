@@ -268,6 +268,11 @@ def oauth_callback():
             session["username"] = student.email
             session["full_name"] = student.full_name
             session.pop("oauth_user_type", None)
+            
+            # Check if profile needs completion
+            if not student.student_id or not student.username or not student.major or not student.year:
+                return redirect(url_for("auth.complete_profile_student"))
+            
             return redirect(url_for("main.student_dashboard"))
 
         professor = Professor.query.filter_by(email=email).first() or Professor.query.filter_by(google_id=google_id).first()
@@ -296,12 +301,129 @@ def oauth_callback():
         session["username"] = professor.email
         session["full_name"] = professor.full_name
         session.pop("oauth_user_type", None)
+        
+        # Check if profile needs completion
+        if not professor.employee_id or not professor.username or not professor.department or not professor.title:
+            return redirect(url_for("auth.complete_profile_professor"))
+        
         return redirect(url_for("main.professor_dashboard"))
 
     except Exception as exc:
         current_app.logger.error("OAuth callback error: %s", exc)
         flash("Authentication failed. Please try again.")
         return redirect(url_for("auth.login"))
+
+
+@bp.route("/complete-profile/student", methods=["GET", "POST"])
+def complete_profile_student():
+    """Complete student profile after OAuth registration"""
+    if not session.get("user_id") or session.get("user_type") != "student":
+        return redirect(url_for("auth.login_student"))
+    
+    student = Student.query.get(session.get("user_id"))
+    if not student:
+        flash("Session invalid. Please log in again.")
+        return redirect(url_for("auth.login_student"))
+    
+    # If profile is already complete, redirect to dashboard
+    if student.student_id and student.username and student.major and student.year:
+        return redirect(url_for("main.student_dashboard"))
+    
+    if request.method == "POST":
+        try:
+            student_id = request.form.get("student_id", "").strip()
+            username = request.form.get("username", "").strip()
+            major = request.form.get("major", "").strip()
+            year = request.form.get("year", "").strip()
+            
+            if not all([student_id, username, major, year]):
+                flash("Please fill in all required fields.")
+                return render_template("complete_profile_student.html", student=student)
+            
+            # Check if student_id is already taken
+            existing_student_id = Student.query.filter_by(student_id=student_id).first()
+            if existing_student_id and existing_student_id.id != student.id:
+                flash("Student ID already exists. Please choose a different one.")
+                return render_template("complete_profile_student.html", student=student)
+            
+            # Check if username is already taken
+            existing_username = Student.query.filter_by(username=username).first()
+            if existing_username and existing_username.id != student.id:
+                flash("Username already exists. Please choose a different one.")
+                return render_template("complete_profile_student.html", student=student)
+            
+            # Update student profile
+            student.student_id = student_id
+            student.username = username
+            student.major = major
+            student.year = year
+            db.session.commit()
+            
+            flash("Profile completed successfully! Welcome to Student Tracker.")
+            return redirect(url_for("main.student_dashboard"))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash("An error occurred. Please try again.")
+            current_app.logger.error(f"Profile completion error: {e}")
+    
+    return render_template("complete_profile_student.html", student=student)
+
+
+@bp.route("/complete-profile/professor", methods=["GET", "POST"])
+def complete_profile_professor():
+    """Complete professor profile after OAuth registration"""
+    if not session.get("user_id") or session.get("user_type") != "professor":
+        return redirect(url_for("auth.login_professor"))
+    
+    professor = Professor.query.get(session.get("user_id"))
+    if not professor:
+        flash("Session invalid. Please log in again.")
+        return redirect(url_for("auth.login_professor"))
+    
+    # If profile is already complete, redirect to dashboard
+    if professor.employee_id and professor.username and professor.department and professor.title:
+        return redirect(url_for("main.professor_dashboard"))
+    
+    if request.method == "POST":
+        try:
+            employee_id = request.form.get("employee_id", "").strip()
+            username = request.form.get("username", "").strip()
+            department = request.form.get("department", "").strip()
+            title = request.form.get("title", "").strip()
+            
+            if not all([employee_id, username, department, title]):
+                flash("Please fill in all required fields.")
+                return render_template("complete_profile_professor.html", professor=professor)
+            
+            # Check if employee_id is already taken
+            existing_employee_id = Professor.query.filter_by(employee_id=employee_id).first()
+            if existing_employee_id and existing_employee_id.id != professor.id:
+                flash("Employee ID already exists. Please choose a different one.")
+                return render_template("complete_profile_professor.html", professor=professor)
+            
+            # Check if username is already taken
+            existing_username = Professor.query.filter_by(username=username).first()
+            if existing_username and existing_username.id != professor.id:
+                flash("Username already exists. Please choose a different one.")
+                return render_template("complete_profile_professor.html", professor=professor)
+            
+            # Update professor profile
+            professor.employee_id = employee_id
+            professor.username = username
+            professor.department = department
+            professor.title = title
+            db.session.commit()
+            
+            flash("Profile completed successfully! Welcome to Student Tracker.")
+            return redirect(url_for("main.professor_dashboard"))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash("An error occurred. Please try again.")
+            current_app.logger.error(f"Profile completion error: {e}")
+    
+    return render_template("complete_profile_professor.html", professor=professor)
 
 
 @bp.route("/login", methods=["GET", "POST"])
