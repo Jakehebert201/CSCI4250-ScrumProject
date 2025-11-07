@@ -382,6 +382,50 @@ class NotificationService:
             expires_at=datetime.utcnow() + timedelta(hours=24),
             notification_type='emergency'
         )
+    
+    def cleanup_old_notifications(self) -> dict:
+        """Clean up old notifications from the database"""
+        try:
+            # Delete expired notifications
+            expired_count = Notification.query.filter(
+                Notification.expires_at.isnot(None),
+                Notification.expires_at < datetime.utcnow()
+            ).delete()
+            
+            # Delete read notifications older than 30 days
+            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            old_read_count = Notification.query.filter(
+                Notification.is_read == True,
+                Notification.created_at < thirty_days_ago
+            ).delete()
+            
+            # Delete unread low-priority notifications older than 7 days
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            old_low_priority_count = Notification.query.filter(
+                Notification.is_read == False,
+                Notification.priority == 'low',
+                Notification.created_at < seven_days_ago
+            ).delete()
+            
+            db.session.commit()
+            
+            total_deleted = expired_count + old_read_count + old_low_priority_count
+            
+            return {
+                'success': True,
+                'expired': expired_count,
+                'old_read': old_read_count,
+                'old_low_priority': old_low_priority_count,
+                'total': total_deleted
+            }
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error cleaning up notifications: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
 # Global notification service instance
 notification_service = NotificationService()

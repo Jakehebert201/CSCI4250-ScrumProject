@@ -116,11 +116,25 @@ def login_student():
             session["user_type"] = "student"
             session["username"] = student.username
             session["full_name"] = student.full_name
+            session.pop("login_failed_student", None)  # Clear failed attempts on success
             return redirect(url_for("main.student_dashboard"))
 
-        return render_template("login_student.html", error="Invalid credentials")
+        # Track failed login attempts
+        failed_attempts = session.get("login_failed_student", 0) + 1
+        session["login_failed_student"] = failed_attempts
+        
+        # Trigger CAPTCHA after first failed attempt
+        show_captcha = failed_attempts >= 1
+        
+        return render_template("login_student.html", 
+                             error="Invalid credentials", 
+                             show_captcha=show_captcha,
+                             oauth_url=url_for("auth.oauth_login", user_type="student"))
 
-    return render_template("login_student.html")
+    # Don't show CAPTCHA on initial GET request
+    return render_template("login_student.html", 
+                         show_captcha=False,
+                         oauth_url=url_for("auth.oauth_login", user_type="student"))
 
 
 @bp.route("/login/professor", methods=["GET", "POST"])
@@ -143,11 +157,25 @@ def login_professor():
             session["user_type"] = "professor"
             session["username"] = professor.username
             session["full_name"] = professor.full_name
+            session.pop("login_failed_professor", None)  # Clear failed attempts on success
             return redirect(url_for("main.professor_dashboard"))
 
-        return render_template("login_professor.html", error="Invalid credentials")
+        # Track failed login attempts
+        failed_attempts = session.get("login_failed_professor", 0) + 1
+        session["login_failed_professor"] = failed_attempts
+        
+        # Trigger CAPTCHA after first failed attempt
+        show_captcha = failed_attempts >= 1
+        
+        return render_template("login_professor.html", 
+                             error="Invalid credentials", 
+                             show_captcha=show_captcha,
+                             oauth_url=url_for("auth.oauth_login", user_type="professor"))
 
-    return render_template("login_professor.html")
+    # Don't show CAPTCHA on initial GET request
+    return render_template("login_professor.html", 
+                         show_captcha=False,
+                         oauth_url=url_for("auth.oauth_login", user_type="professor"))
 
 
 @bp.route("/oauth/login/<user_type>")

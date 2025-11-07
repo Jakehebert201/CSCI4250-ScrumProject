@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Cleanup | Student Location Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        .cleanup-panel {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: var(--surface);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .stat-card {
+            padding: 1.5rem;
+            background: var(--muted);
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text);
+            opacity: 0.7;
+        }
+        
+        .cleanup-actions {
+            display: grid;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .cleanup-btn {
+            padding: 1rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .cleanup-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .result-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+        
+        .result-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+    </style>
+</head>
+<body class="layout">
+    <header class="page-header">
+        <a class="brand" href="{{ url_for('main.landing_page') }}">Student Location Tracker</a>
+        <nav class="page-nav">
+            <a href="{{ url_for('main.professor_dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('notifications.notification_center') }}">Notifications</a>
+            <a href="{{ url_for('main.database') }}">Database</a>
+            <a href="{{ url_for('auth.logout') }}">Log Out</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="cleanup-panel">
+            <h1>🗑️ Database Cleanup</h1>
+            <p>Manage and clean up old notifications to keep the database optimized.</p>
+
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Notifications</div>
+                    <div class="stat-value" id="stat-total">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Unread</div>
+                    <div class="stat-value" id="stat-unread">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Recent (7 days)</div>
+                    <div class="stat-value" id="stat-recent">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Expired</div>
+                    <div class="stat-value" id="stat-expired">-</div>
+                </div>
+            </div>
+
+            <div class="cleanup-actions">
+                <button class="cleanup-btn btn-info" onclick="loadStats()">
+                    🔄 Refresh Stats
+                </button>
+                
+                <button class="cleanup-btn btn-warning" onclick="cleanupNotifications(false)">
+                    🧹 Standard Cleanup (Old Notifications)
+                </button>
+                
+                <button class="cleanup-btn btn-warning" onclick="cleanupNotifications(true)">
+                    ⚡ Aggressive Cleanup (All Read)
+                </button>
+                
+                <button class="cleanup-btn btn-danger" onclick="deleteAllNotifications()">
+                    ⚠️ Delete All My Notifications
+                </button>
+            </div>
+
+            <div class="result-message" id="result-message"></div>
+        </div>
+    </main>
+
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/app/api/notifications/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('stat-total').textContent = data.stats.total;
+                    document.getElementById('stat-unread').textContent = data.stats.unread;
+                    document.getElementById('stat-recent').textContent = data.stats.recent_7_days;
+                    document.getElementById('stat-expired').textContent = data.stats.expired;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function cleanupNotifications(aggressive = false) {
+            const confirmMsg = aggressive 
+                ? '⚡ AGGRESSIVE MODE:\n• All expired notifications\n• ALL read notifications\n• ALL low-priority notifications\n\nThis will delete most notifications!\n\nContinue?'
+                : 'STANDARD MODE:\n• Expired notifications\n• Read notifications older than 30 days\n• Unread low-priority notifications older than 7 days\n\nContinue?';
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/app/api/notifications/cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ aggressive })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`Successfully cleaned up ${data.deleted.total} notifications (${data.mode} mode):\n• ${data.deleted.expired} expired\n• ${data.deleted.old_read} read\n• ${data.deleted.old_low_priority} low-priority`, 'success');
+                    loadStats();
+                } else {
+                    showMessage('Failed to cleanup notifications', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Failed to cleanup notifications', 'error');
+            }
+        }
+
+        async function deleteAllNotifications() {
+            if (!confirm('⚠️ WARNING: This will delete ALL your notifications permanently!\n\nAre you sure?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/app/api/notifications/delete-all', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`Deleted ${data.deleted_count} notifications`, 'success');
+                    loadStats();
+                } else {
+                    showMessage('Failed to delete notifications', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Failed to delete notifications', 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const msgEl = document.getElementById('result-message');
+            msgEl.textContent = message;
+            msgEl.className = `result-message ${type}`;
+            
+            setTimeout(() => {
+                msgEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load stats on page load
+        loadStats();
+    </script>
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+</body>
+</html>

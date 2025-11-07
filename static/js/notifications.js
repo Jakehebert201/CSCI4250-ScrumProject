@@ -38,6 +38,10 @@ class NotificationManager {
             this.sendTestNotification();
         });
 
+        document.getElementById('cleanup-btn')?.addEventListener('click', () => {
+            this.cleanupNotifications();
+        });
+
         // Modal events
         this.bindModalEvents();
     }
@@ -140,7 +144,7 @@ class NotificationManager {
         
         return `
             <div class="notification-item ${unreadClass} ${priorityClass}" data-id="${notification.id}">
-                <button class="notification-close" onclick="notificationManager.markAsRead(${notification.id})">×</button>
+                <button class="notification-close" data-notification-id="${notification.id}" title="Remove notification">×</button>
                 <div class="notification-content">
                     <div class="notification-icon" style="background: ${notification.priority_color}20;">
                         ${notification.priority_icon}
@@ -170,6 +174,15 @@ class NotificationManager {
     }
 
     bindNotificationEvents() {
+        // Delete button clicks
+        document.querySelectorAll('.notification-close').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const notificationId = parseInt(btn.dataset.notificationId);
+                this.deleteNotification(notificationId);
+            });
+        });
+        
         // Click to mark as read
         document.querySelectorAll('.notification-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -216,7 +229,7 @@ class NotificationManager {
         this.renderNotifications();
     }
 
-    async markAsRead(notificationId) {
+    async markAsRead(notificationId, remove = false) {
         try {
             const response = await fetch(`/app/api/notifications/${notificationId}/read`, {
                 method: 'POST',
@@ -224,10 +237,15 @@ class NotificationManager {
             });
             
             if (response.ok) {
-                // Update local state
-                const notification = this.notifications.find(n => n.id === notificationId);
-                if (notification) {
-                    notification.is_read = true;
+                if (remove) {
+                    // Remove from local state
+                    this.notifications = this.notifications.filter(n => n.id !== notificationId);
+                } else {
+                    // Update local state
+                    const notification = this.notifications.find(n => n.id === notificationId);
+                    if (notification) {
+                        notification.is_read = true;
+                    }
                 }
                 
                 this.updateNotificationCount();
@@ -235,6 +253,46 @@ class NotificationManager {
             }
         } catch (error) {
             console.error('Error marking notification as read:', error);
+        }
+    }
+    
+    async deleteNotification(notificationId) {
+        try {
+            // Try DELETE method first, fallback to POST
+            let response = await fetch(`/app/api/notifications/${notificationId}`, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+            
+            // If DELETE fails, try POST
+            if (!response.ok && response.status === 405) {
+                response = await fetch(`/app/api/notifications/${notificationId}`, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _method: 'DELETE' })
+                });
+            }
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Delete successful:', result);
+                
+                // Remove from local state
+                this.notifications = this.notifications.filter(n => n.id !== notificationId);
+                this.updateNotificationCount();
+                this.renderNotifications();
+                
+                // Show subtle feedback
+                this.showToast('Notification removed', 'success');
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Delete failed:', response.status, errorData);
+                this.showError(errorData.error || `Failed to delete notification (${response.status})`);
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            this.showError('Failed to delete notification: ' + error.message);
         }
     }
 
@@ -409,6 +467,46 @@ class NotificationManager {
         } catch (error) {
             console.error('Error sending test notification:', error);
             this.showError('Failed to send test notification');
+        }
+    }
+
+    async cleanupNotifications() {
+        // Ask user which mode
+        const mode = confirm('Choose cleanup mode:\n\nOK = Aggressive (delete ALL read notifications)\nCancel = Standard (only old notifications)');
+        
+        const aggressive = mode; // true if OK clicked
+        
+        const confirmMsg = aggressive 
+            ? 'AGGRESSIVE MODE:\n• All expired notifications\n• ALL read notifications\n• ALL low-priority notifications\n\nThis will delete most of your notifications!\n\nContinue?'
+            : 'STANDARD MODE:\n• Expired notifications\n• Read notifications older than 30 days\n• Unread low-priority notifications older than 7 days\n\nContinue?';
+        
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/app/api/notifications/cleanup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ aggressive })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                const total = data.deleted.total;
+                const details = `Deleted: ${data.deleted.expired} expired, ${data.deleted.old_read} read, ${data.deleted.old_low_priority} low-priority`;
+                this.showToast(`Cleaned up ${total} notification${total !== 1 ? 's' : ''} (${data.mode} mode)`, 'success');
+                
+                // Force reload notifications from server
+                await this.loadNotifications();
+            } else {
+                this.showError(data.error || 'Failed to cleanup notifications');
+            }
+        } catch (error) {
+            console.error('Error cleaning up notifications:', error);
+            this.showError('Failed to cleanup notifications');
         }
     }
 

@@ -51,20 +51,46 @@ def update_location():
         db.session.add(location)
         db.session.commit()
 
-        # Create location sharing notification for student
+        # Create location sharing notification for student (if enabled and not spammy)
         from studenttracker.services.notification_service import notification_service
-        notification_service.create_notification(
-            title="Location Shared Successfully! 📍",
-            message=f"Your location has been shared: {city or 'Unknown location'}",
+        from studenttracker.models import UserNotificationPreference, NotificationType
+        
+        # Check user preferences
+        prefs = UserNotificationPreference.query.filter_by(
             user_id=student.id,
-            user_type='student',
-            priority='low',
-            icon='📍',
-            action_url='/app/dashboard/student',
-            action_text='View Dashboard',
-            data={'type': 'location_shared', 'city': city},
-            notification_type='location_alert'
-        )
+            user_type='student'
+        ).first()
+        
+        # Check if location alerts are enabled
+        if prefs:
+            location_type = NotificationType.query.filter_by(name='location_alert').first()
+            if location_type and location_type.id in [t.id for t in prefs.enabled_types]:
+                # Check for cooldown - only send notification if last one was > 5 minutes ago
+                from studenttracker.models import Notification
+                last_location_notif = Notification.query.filter_by(
+                    user_id=student.id,
+                    notification_type='location_alert'
+                ).order_by(Notification.created_at.desc()).first()
+                
+                should_notify = True
+                if last_location_notif:
+                    time_since_last = datetime.utcnow() - last_location_notif.created_at
+                    if time_since_last.total_seconds() < 300:  # 5 minutes cooldown
+                        should_notify = False
+                
+                if should_notify:
+                    notification_service.create_notification(
+                        title="Location Shared Successfully! 📍",
+                        message=f"Your location has been shared: {city or 'Unknown location'}",
+                        user_id=student.id,
+                        user_type='student',
+                        priority='low',
+                        icon='📍',
+                        action_url='/app/dashboard/student',
+                        action_text='View Dashboard',
+                        data={'type': 'location_shared', 'city': city},
+                        notification_type='location_alert'
+                    )
 
         return jsonify({"success": True, "city": city}), 200
 
