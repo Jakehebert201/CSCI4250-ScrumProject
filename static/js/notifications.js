@@ -93,7 +93,7 @@ class NotificationManager {
         try {
             this.showLoading(true);
             
-            const response = await fetch('/app/api/notifications', {
+            const response = await fetch('api/notifications', {
                 credentials: 'same-origin'
             });
             
@@ -231,7 +231,7 @@ class NotificationManager {
 
     async markAsRead(notificationId, remove = false) {
         try {
-            const response = await fetch(`/app/api/notifications/${notificationId}/read`, {
+            const response = await fetch(`api/notifications/${notificationId}/read`, {
                 method: 'POST',
                 credentials: 'same-origin'
             });
@@ -259,14 +259,14 @@ class NotificationManager {
     async deleteNotification(notificationId) {
         try {
             // Try DELETE method first, fallback to POST
-            let response = await fetch(`/app/api/notifications/${notificationId}`, {
+            let response = await fetch(`api/notifications/${notificationId}`, {
                 method: 'DELETE',
                 credentials: 'same-origin'
             });
             
             // If DELETE fails, try POST
             if (!response.ok && response.status === 405) {
-                response = await fetch(`/app/api/notifications/${notificationId}`, {
+                response = await fetch(`api/notifications/${notificationId}`, {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: { 'Content-Type': 'application/json' },
@@ -298,7 +298,7 @@ class NotificationManager {
 
     async markAllAsRead() {
         try {
-            const response = await fetch('/app/api/notifications/mark-all-read', {
+            const response = await fetch('api/notifications/mark-all-read', {
                 method: 'POST',
                 credentials: 'same-origin'
             });
@@ -321,7 +321,7 @@ class NotificationManager {
     async openPreferences() {
         try {
             // Load current preferences
-            const response = await fetch('/app/api/notifications/preferences', {
+            const response = await fetch('api/notifications/preferences', {
                 credentials: 'same-origin'
             });
             
@@ -379,7 +379,7 @@ class NotificationManager {
                 preferences.attendance_alerts_enabled = attendanceCheckbox.checked;
             }
             
-            const response = await fetch('/app/api/notifications/preferences', {
+            const response = await fetch('api/notifications/preferences', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
@@ -421,7 +421,7 @@ class NotificationManager {
                 return;
             }
             
-            const response = await fetch('/app/api/notifications/broadcast', {
+            const response = await fetch('api/notifications/broadcast', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
@@ -451,7 +451,7 @@ class NotificationManager {
 
     async sendTestNotification() {
         try {
-            const response = await fetch('/app/api/notifications/test', {
+            const response = await fetch('api/notifications/test', {
                 method: 'POST',
                 credentials: 'same-origin'
             });
@@ -485,7 +485,7 @@ class NotificationManager {
         }
 
         try {
-            const response = await fetch('/app/api/notifications/cleanup', {
+            const response = await fetch('api/notifications/cleanup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
@@ -551,7 +551,7 @@ class NotificationManager {
             });
             
             // Send subscription to server
-            await fetch('/app/api/notifications/push/subscribe', {
+            await fetch('api/notifications/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
@@ -579,7 +579,7 @@ class NotificationManager {
                 await subscription.unsubscribe();
                 
                 // Notify server
-                await fetch('/app/api/notifications/push/unsubscribe', {
+                await fetch('api/notifications/push/unsubscribe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'same-origin',

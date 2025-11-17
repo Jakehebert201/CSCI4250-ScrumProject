@@ -157,7 +157,7 @@
     <script>
         async function loadStats() {
             try {
-                const response = await fetch('/app/api/notifications/stats');
+                const response = await fetch('api/notifications/stats');
                 const data = await response.json();
                 
                 if (data.success) {
@@ -181,7 +181,7 @@
             }
 
             try {
-                const response = await fetch('/app/api/notifications/cleanup', {
+                const response = await fetch('api/notifications/cleanup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ aggressive })
@@ -206,7 +206,7 @@
             }
 
             try {
-                const response = await fetch('/app/api/notifications/delete-all', {
+                const response = await fetch('api/notifications/delete-all', {
                     method: 'POST'
                 });
                 const data = await response.json();
