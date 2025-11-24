@@ -2,8 +2,12 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from werkzeug.security import generate_password_hash
 import requests
 
-from studenttracker.extensions import db, oauth
+from studenttracker.extensions import db, oauth, limiter
 from studenttracker.models import Professor, Student
+from studenttracker.validators import (
+    sanitize_input, validate_email_address, validate_password_strength,
+    validate_username, validate_student_id, validate_employee_id, validate_name
+)
 
 
 def _get_google_client():
@@ -17,20 +21,53 @@ bp = Blueprint("auth", __name__)
 
 
 @bp.route("/register/student", methods=["GET", "POST"])
+@limiter.limit("10 per hour")
 def register_student():
     if request.method == "POST":
-        student_id = request.form.get("student_id", "").strip()
-        username = request.form.get("username", "").strip()
+        # Get and sanitize inputs
+        student_id = sanitize_input(request.form.get("student_id", "").strip())
+        username = sanitize_input(request.form.get("username", "").strip())
         password = request.form.get("password", "")
-        email = request.form.get("email", "").strip()
-        first_name = request.form.get("first_name", "").strip()
-        last_name = request.form.get("last_name", "").strip()
-        major = request.form.get("major", "").strip()
-        year = request.form.get("year", "").strip()
+        email = sanitize_input(request.form.get("email", "").strip())
+        first_name = sanitize_input(request.form.get("first_name", "").strip())
+        last_name = sanitize_input(request.form.get("last_name", "").strip())
+        major = sanitize_input(request.form.get("major", "").strip())
+        year = sanitize_input(request.form.get("year", "").strip())
 
+        # Validate required fields
         if not all([student_id, username, password, email, first_name, last_name]):
             return render_template("register_student.html", error="All required fields must be filled")
 
+        # Validate student ID
+        valid, error = validate_student_id(student_id)
+        if not valid:
+            return render_template("register_student.html", error=error)
+
+        # Validate username
+        valid, error = validate_username(username)
+        if not valid:
+            return render_template("register_student.html", error=error)
+
+        # Validate password strength
+        valid, error = validate_password_strength(password)
+        if not valid:
+            return render_template("register_student.html", error=error)
+
+        # Validate email
+        valid, error = validate_email_address(email)
+        if not valid:
+            return render_template("register_student.html", error=error)
+
+        # Validate names
+        valid, error = validate_name(first_name, "First name")
+        if not valid:
+            return render_template("register_student.html", error=error)
+
+        valid, error = validate_name(last_name, "Last name")
+        if not valid:
+            return render_template("register_student.html", error=error)
+
+        # Check for duplicates
         if Student.query.filter_by(student_id=student_id).first():
             return render_template("register_student.html", error="Student ID already registered")
         if Student.query.filter_by(username=username).first():
@@ -57,20 +94,53 @@ def register_student():
 
 
 @bp.route("/register/professor", methods=["GET", "POST"])
+@limiter.limit("10 per hour")
 def register_professor():
     if request.method == "POST":
-        employee_id = request.form.get("employee_id", "").strip()
-        username = request.form.get("username", "").strip()
+        # Get and sanitize inputs
+        employee_id = sanitize_input(request.form.get("employee_id", "").strip())
+        username = sanitize_input(request.form.get("username", "").strip())
         password = request.form.get("password", "")
-        email = request.form.get("email", "").strip()
-        first_name = request.form.get("first_name", "").strip()
-        last_name = request.form.get("last_name", "").strip()
-        department = request.form.get("department", "").strip()
-        title = request.form.get("title", "").strip()
+        email = sanitize_input(request.form.get("email", "").strip())
+        first_name = sanitize_input(request.form.get("first_name", "").strip())
+        last_name = sanitize_input(request.form.get("last_name", "").strip())
+        department = sanitize_input(request.form.get("department", "").strip())
+        title = sanitize_input(request.form.get("title", "").strip())
 
+        # Validate required fields
         if not all([employee_id, username, password, email, first_name, last_name]):
             return render_template("register_professor.html", error="All required fields must be filled")
 
+        # Validate employee ID
+        valid, error = validate_employee_id(employee_id)
+        if not valid:
+            return render_template("register_professor.html", error=error)
+
+        # Validate username
+        valid, error = validate_username(username)
+        if not valid:
+            return render_template("register_professor.html", error=error)
+
+        # Validate password strength
+        valid, error = validate_password_strength(password)
+        if not valid:
+            return render_template("register_professor.html", error=error)
+
+        # Validate email
+        valid, error = validate_email_address(email)
+        if not valid:
+            return render_template("register_professor.html", error=error)
+
+        # Validate names
+        valid, error = validate_name(first_name, "First name")
+        if not valid:
+            return render_template("register_professor.html", error=error)
+
+        valid, error = validate_name(last_name, "Last name")
+        if not valid:
+            return render_template("register_professor.html", error=error)
+
+        # Check for duplicates
         if Professor.query.filter_by(employee_id=employee_id).first():
             return render_template("register_professor.html", error="Employee ID already registered")
         if Professor.query.filter_by(username=username).first():
@@ -97,6 +167,7 @@ def register_professor():
 
 
 @bp.route("/login/student", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def login_student():
     if request.method == "POST":
         identifier = request.form.get("username", "").strip()
@@ -138,6 +209,7 @@ def login_student():
 
 
 @bp.route("/login/professor", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def login_professor():
     if request.method == "POST":
         identifier = request.form.get("username", "").strip()
@@ -196,11 +268,9 @@ def oauth_login(user_type):
     try:
         session["oauth_user_type"] = user_type
         redirect_uri = url_for("auth.oauth_callback", _external=True)
-        current_app.logger.info(f"Generated redirect URI: {redirect_uri}")
         
         # Ensure consistent redirect URI format
         redirect_uri = redirect_uri.replace("127.0.0.1", "localhost")
-        current_app.logger.info(f"Final redirect URI: {redirect_uri}")
         
         return google_client.authorize_redirect(redirect_uri)
     except Exception as exc:
@@ -222,10 +292,6 @@ def oauth_callback():
         return redirect(url_for("auth.login"))
 
     try:
-        # Debug the callback request
-        current_app.logger.info(f"Callback request args: {request.args}")
-        current_app.logger.info(f"Session keys: {list(session.keys())}")
-        
         # Handle the OAuth callback with manual token exchange to avoid state issues
         auth_code = request.args.get('code')
         if not auth_code:
@@ -242,7 +308,6 @@ def oauth_callback():
         
         token_response = requests.post('https://oauth2.googleapis.com/token', data=token_data)
         token_json = token_response.json()
-        current_app.logger.info(f"Token response: {token_json}")
         
         if 'access_token' not in token_json:
             raise Exception(f"Token exchange failed: {token_json}")
@@ -253,7 +318,6 @@ def oauth_callback():
             headers={'Authorization': f"Bearer {token_json['access_token']}"}
         )
         user_info = user_response.json()
-        current_app.logger.info(f"User info: {user_info}")
         
         if not user_info or 'email' not in user_info:
             flash("Failed to get user information from Google")
@@ -267,7 +331,6 @@ def oauth_callback():
         
         # Since session might be empty, we'll default to student but allow override
         user_type = session.get("oauth_user_type", "student")
-        current_app.logger.info(f"Processing OAuth for user_type: {user_type}, email: {email}")
 
         if user_type == "student":
             student = Student.query.filter_by(email=email).first() or Student.query.filter_by(google_id=google_id).first()

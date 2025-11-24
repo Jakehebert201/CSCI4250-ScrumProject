@@ -91,16 +91,10 @@ def delete_notification(notification_id):
     user_type = session.get("user_type")
     
     try:
-        from flask import current_app
-        current_app.logger.info(f"Attempting to delete notification {notification_id} for user {user_id}")
-        
         notification = Notification.query.get(notification_id)
         
         if not notification:
-            current_app.logger.warning(f"Notification {notification_id} not found")
             return jsonify({"error": "Notification not found"}), 404
-        
-        current_app.logger.info(f"Found notification: id={notification.id}, user_id={notification.user_id}, user_type={notification.user_type}")
         
         # Check if user can see this notification
         can_see = (
@@ -110,18 +104,16 @@ def delete_notification(notification_id):
         )
         
         if not can_see:
-            current_app.logger.warning(f"User {user_id} cannot access notification {notification_id}")
             return jsonify({"error": "Access denied"}), 403
         
         # Delete the notification
-        current_app.logger.info(f"Deleting notification {notification_id}")
         db.session.delete(notification)
         db.session.commit()
-        current_app.logger.info(f"Successfully deleted notification {notification_id}")
         
         # Verify it's gone
         check = Notification.query.get(notification_id)
         if check:
+            from flask import current_app
             current_app.logger.error(f"Notification {notification_id} still exists after delete!")
             return jsonify({"error": "Delete failed - notification still exists"}), 500
         
@@ -129,11 +121,9 @@ def delete_notification(notification_id):
         
     except Exception as e:
         db.session.rollback()
-        import traceback
         from flask import current_app
         current_app.logger.error(f"Error deleting notification {notification_id}: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
 @bp.route("/api/notifications/mark-all-read", methods=["POST"])
 def mark_all_notifications_read():

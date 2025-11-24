@@ -128,7 +128,6 @@ SESSION_COOKIE_SAMESITE=Lax
 - **FERPA**: Educational records protection compliance
 - **GDPR**: European data protection regulation compliance
 - **CCPA**: California consumer privacy act compliance
-- **COPPA**: Children's online privacy protection (if applicable)
 
 ### Security Standards
 - **OWASP Top 10**: Protection against common web vulnerabilities

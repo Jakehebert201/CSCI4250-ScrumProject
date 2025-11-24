@@ -52,14 +52,7 @@ def require_student():
 def list_classes():
     """List all available classes"""
     try:
-        # Debug logging
-        current_app.logger.info(f"=== CLASSES ROUTE ACCESSED ===")
-        current_app.logger.info(f"User ID: {session.get('user_id')}")
-        current_app.logger.info(f"User Type: {session.get('user_type')}")
-        current_app.logger.info(f"Session keys: {list(session.keys())}")
-        
         if not session.get("user_id"):
-            current_app.logger.info("No user_id in session, redirecting to login")
             return redirect(url_for("auth.login"))
         
         user_type = session.get("user_type")
@@ -68,7 +61,6 @@ def list_classes():
             # Professors see their own classes
             professor = Professor.query.get(session.get("user_id"))
             classes = professor.classes.all() if professor else []
-            current_app.logger.info(f"Professor {professor.full_name if professor else 'Unknown'} viewing {len(classes)} classes")
             return render_template("classes/professor_classes.html", classes=classes, professor=professor)
         
         elif user_type == "student":
@@ -80,24 +72,17 @@ def list_classes():
                 
             all_classes = Class.query.filter_by(is_active=True).all()
             enrolled_classes = student.enrolled_classes.all() if student else []
-            current_app.logger.info(f"Student {student.full_name} viewing classes - {len(all_classes)} available, {len(enrolled_classes)} enrolled")
             
-            # Try to render the template
-            current_app.logger.info("About to render student_classes.html template")
             return render_template("classes/student_classes.html", 
                                  all_classes=all_classes, 
                                  enrolled_classes=enrolled_classes,
                                  student=student)
         
-        current_app.logger.info(f"Unknown user type: {user_type}, redirecting to login")
         return redirect(url_for("auth.login"))
         
     except Exception as e:
         current_app.logger.error(f"Error in classes route: {str(e)}")
-        current_app.logger.error(f"Exception type: {type(e).__name__}")
-        import traceback
-        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
-        return f"<h1>Error in Classes Route</h1><p>{str(e)}</p><p><a href='/app'>Back to Home</a></p>"
+        return redirect(url_for("main.landing_page"))
 
 
 @bp.route("/create", methods=["GET", "POST"])

@@ -5,13 +5,14 @@ from flask import Flask, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash
 
-from studenttracker.extensions import db, migrate, oauth
+from studenttracker.extensions import db, migrate, oauth, csrf, limiter
 from studenttracker.routes import register_blueprints
 from studenttracker.utils import register_template_filters
 
 
 def create_app():
     from dotenv import load_dotenv
+    from datetime import timedelta
 
     load_dotenv()
 
@@ -26,6 +27,16 @@ def create_app():
     app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-key")
     app.config["APPLICATION_ROOT"] = "/app"
 
+    # Security configurations
+    app.config.update(
+        SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production",
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=24),
+        WTF_CSRF_TIME_LIMIT=None,  # CSRF tokens don't expire
+        WTF_CSRF_SSL_STRICT=False,  # Allow development without HTTPS
+    )
+
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_port=1)
     app.config["PREFERRED_URL_SCHEME"] = "https"
 
@@ -38,6 +49,26 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     oauth.init_app(app)
+    csrf.init_app(app)
+    limiter.init_app(app)
+
+    # Security headers with Talisman (only in production)
+    if os.environ.get("FLASK_ENV") == "production":
+        from flask_talisman import Talisman
+        Talisman(app,
+            force_https=True,
+            strict_transport_security=True,
+            strict_transport_security_max_age=31536000,
+            content_security_policy={
+                'default-src': "'self'",
+                'script-src': ["'self'", "'unsafe-inline'", "https://maps.googleapis.com", "https://accounts.google.com"],
+                'style-src': ["'self'", "'unsafe-inline'"],
+                'img-src': ["'self'", "data:", "https:", "*.googleusercontent.com"],
+                'connect-src': ["'self'", "https://maps.googleapis.com", "https://accounts.google.com"],
+                'frame-src': ["'self'", "https://accounts.google.com"],
+            },
+            content_security_policy_nonce_in=['script-src']
+        )
 
     oauth_enabled = bool(app.config.get("GOOGLE_CLIENT_ID") and app.config.get("GOOGLE_CLIENT_SECRET"))
     if oauth_enabled:
@@ -57,7 +88,7 @@ def create_app():
                     "token_endpoint_auth_method": "client_secret_post"
                 },
             )
-            app.logger.info("Google OAuth configured successfully")
+
         except Exception as exc:
             app.logger.error("Failed to configure Google OAuth: %s", exc)
             oauth_enabled = False
@@ -364,7 +395,7 @@ def create_app():
             # Create diverse fake students
             create_fake_students()
             
-            app.logger.info("Created sample professors, classes, and students for testing")
+
 
         def update_existing_classes():
             """Update existing classes to use the new fake professors"""
@@ -382,7 +413,7 @@ def create_app():
                 se_class = Class.query.filter_by(course_code="CSCI 4250", course_name="Software Engineering").first()
                 if se_class and se_class.professor_id == sample_prof.id:
                     se_class.professor_id = cs_professors[0].id  # Dr. John Smith
-                    app.logger.info(f"Updated Software Engineering class to be taught by {cs_professors[0].full_name}")
+
                 
                 # Update Introduction to Programming class if it exists
                 intro_class = Class.query.filter_by(course_code="CSCI 1301", course_name="Introduction to Programming").first()
@@ -390,7 +421,7 @@ def create_app():
                     # Use a different professor for variety
                     prof_index = 1 if len(cs_professors) > 1 else 0
                     intro_class.professor_id = cs_professors[prof_index].id
-                    app.logger.info(f"Updated Introduction to Programming class to be taught by {cs_professors[prof_index].full_name}")
+
                 
                 # Update any other classes taught by the sample professor
                 other_classes = Class.query.filter_by(professor_id=sample_prof.id).all()
@@ -399,7 +430,7 @@ def create_app():
                         # Assign to different CS professors
                         prof_index = i % len(cs_professors)
                         class_obj.professor_id = cs_professors[prof_index].id
-                        app.logger.info(f"Updated {class_obj.full_course_name} to be taught by {cs_professors[prof_index].full_name}")
+
                 
                 db.session.commit()
 
@@ -629,7 +660,7 @@ def create_app():
                     
             if created_count > 0:
                 db.session.commit()
-                app.logger.info(f"Created {created_count} diverse international students")
+
                 
             # Always ensure all fake students have location entries (even if students already existed)
             locations_created = 0
@@ -654,7 +685,7 @@ def create_app():
             
             if locations_created > 0:
                 db.session.commit()
-                app.logger.info(f"Created {locations_created} location records for fake students")
+
                 
                 # Create additional fake locations to populate the map
                 create_additional_fake_locations()
@@ -774,7 +805,7 @@ def create_app():
             
             if location_count > 0:
                 db.session.commit()
-                app.logger.info(f"Created {location_count} additional fake locations for map visualization")
+
 
         db.create_all()
         ensure_seed_users()
