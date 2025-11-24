@@ -14,6 +14,7 @@ class NotificationService:
         self.vapid_private_key = None  # Will be set from environment
         self.vapid_public_key = None
         self.vapid_email = None
+        self._last_due_check = datetime.min
     
     def create_notification(
         self,
@@ -99,6 +100,30 @@ class NotificationService:
             print(f"Error sending notification: {e}")
             db.session.rollback()
             return False
+
+    def process_due_notifications(self, max_batch: int = 50, min_interval_seconds: int = 30) -> int:
+        """
+        Send any scheduled notifications that are now due.
+        Returns the count of notifications attempted.
+        """
+        now = datetime.utcnow()
+        if (now - self._last_due_check).total_seconds() < min_interval_seconds:
+            return 0
+
+        self._last_due_check = now
+
+        pending = Notification.query.filter(
+            Notification.is_sent == False,  # noqa: E712
+            Notification.scheduled_for.isnot(None),
+            Notification.scheduled_for <= now
+        ).order_by(Notification.scheduled_for.asc()).limit(max_batch).all()
+
+        sent_count = 0
+        for notif in pending:
+            if self.send_notification(notif):
+                sent_count += 1
+
+        return sent_count
     
     def _get_recipients(self, notification: Notification) -> List[Dict[str, Any]]:
         """Get list of recipients for a notification"""

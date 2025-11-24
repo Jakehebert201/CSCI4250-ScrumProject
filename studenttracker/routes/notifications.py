@@ -14,7 +14,8 @@ def notification_center():
     """Notification center page"""
     if not session.get("user_id"):
         return redirect(url_for("auth.login"))
-    
+
+    notification_service.process_due_notifications()
     return render_template("notifications/center.html")
 
 @bp.route("/admin/cleanup")
@@ -32,6 +33,7 @@ def get_notifications():
     if not session.get("user_id"):
         return jsonify({"error": "Not authenticated"}), 401
     
+    notification_service.process_due_notifications()
     user_id = session.get("user_id")
     user_type = session.get("user_type")
     
@@ -198,7 +200,10 @@ def update_notification_preferences():
     user_type = session.get("user_type")
     
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "Invalid JSON payload"}), 400
+
         prefs = notification_service._get_user_preferences(user_id, user_type)
         
         # Update preferences
@@ -245,7 +250,9 @@ def subscribe_to_push():
     user_type = session.get("user_type")
     
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "Invalid JSON payload"}), 400
         
         # Extract subscription data
         subscription_data = data.get("subscription", {})
@@ -302,7 +309,9 @@ def unsubscribe_from_push():
     user_type = session.get("user_type")
     
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "Invalid JSON payload"}), 400
         endpoint = data.get("endpoint")
         
         if endpoint:
