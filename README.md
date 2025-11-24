@@ -1,98 +1,90 @@
 # Student Location Tracker
 
-A Flask web application that allows campus staff to monitor student check-ins. Authenticated users log in, grant browser geolocation access, and the app records their position with reverse geocoded city metadata for later review.
+A Flask web app that lets campus staff see student check‑ins on a map, track attendance time, and manage classes. It ships with sample accounts so you can try it immediately.
 
-## Features
-- Account registration and login backed by hashed passwords.
-- Dashboard with a real-time Leaflet map and browser geolocation status.
-- Location updates persisted to SQLite (`instance/studenttracker.db`) with reverse geocoding via OpenStreetMap’s Nominatim API.
-- Admin-style database view that lists recent location updates and registered users.
-- Clock in/out controls that persist attendance events and aggregate total time spent on campus per student per day.
+## Quickstart
+- **Requirements:** Python 3.11+, `pip`, and a working internet connection for reverse geocoding.
+- **Install deps:**
+  ```bash
+  python -m venv .venv
+  source .venv/bin/activate        # On Windows: .venv\Scripts\activate
+  pip install -r requirements.txt
+  ```
+- **Configure environment (optional):**
+  - Copy `.env.example` to `.env`.
+  - Set `FLASK_SECRET` for session signing.
+  - Add `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` to enable OAuth login.
+  - `DATABASE_URL` overrides the default SQLite file at `instance/studenttracker.db`.
+- **Initialize the database (first run):**
+  ```bash
+  python scripts/setup_database.py       # creates the SQLite file and tables
+  # or
+  flask --app app db upgrade             # if using migrations
+  ```
+- **Run the server:**
+  ```bash
+  flask --app app run --debug
+  # or
+  python app.py
+  ```
+- **Open:** http://127.0.0.1:5000
+- **Sample logins:** `student1` / `1234` and `professor1` / `1234`
 
-## Tech Stack
-- **Backend:** Flask, Flask-SQLAlchemy, Flask-Migrate
-- **Frontend:** HTML templates (Jinja2), Leaflet.js, vanilla JavaScript, CSS
-- **Database:** SQLite (default) with migration support via Alembic
+## User Manual
+### Students
+- **Log in:** Use the sample account or register a new one at `/app/register/student`.
+- **Share location:** Visit `/app/dashboard/student`, allow browser geolocation, and the map will update. Location posts to `/app/update_location` and stamps your profile with city + accuracy.
+- **Clock in/out:** Use the dashboard buttons; events are saved via `/app/clock_event` and total time accrues automatically per day.
+- **Classes:** Browse and enroll from `/app/classes/`; drop from the class page. Enrollment respects capacity and open/closed status.
+- **History:** See your recent location points and daily totals in `/app/database`.
+- **Clear my locations:** Use the “Clear Locations” action (student-only) if you want to reset your last known coordinates.
 
-## Getting Started
-1. **Clone the project** and move into the repo directory.
-2. **Create a virtual environment** (recommended):
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   ```
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. **Configure environment variables (optional):**
-   - `FLASK_SECRET`: Overrides the default development secret key.
-5. **Initialize the database (first run only):**
-   ```bash
-   flask --app app db upgrade  # creates tables via Flask-Migrate
-   ```
-   or simply run:
-   ```bash
-   python scripts/setup_database.py
-   ```
-   The helper script will create the `migrations/` folder (if missing) and apply the latest schema. It targets the Flask app entry point at `tracker/app.py` (matching the Docker layout) and falls back to `app.py` when that path is absent; adjust `APP_FILE` inside the script if your structure differs. The application also calls `db.create_all()` on startup, so this step can be skipped for quick experiments, though migrations are recommended as the schema evolves.
-6. **Run the application:**
-   ```bash
-   flask --app app run --debug
-   ```
-   or
-   ```bash
-   python app.py
-   ```
-7. **Open the app** at <http://127.0.0.1:5000>. The startup process seeds example accounts (`student1` / `1234`, `professor1` / `1234`) so you can log in immediately. Grant geolocation access on the dashboard page to start collecting location data.
+### Professors
+- **Log in:** Use `professor1` / `1234` or register at `/app/register/professor`.
+- **Live map:** `/app/dashboard/professor` shows the latest student positions. “Live” status uses the student heartbeat; toggle between live-only and all points.
+- **Classes:** Create and manage classes at `/app/classes/`. Students can enroll; you can edit details, close enrollment, or view rosters.
+- **Cleanup tools:** `/app/notifications` > Admin Cleanup lets you clear real locations while preserving demo data. `/app/api/clear-all-locations` also resets last-known positions.
+- **Database view:** `/app/database` lists students, professors, classes, locations, and daily time totals for quick auditing.
 
-## Project Structure
+### Notifications
+- Open `/app/notifications` for the inbox. Mark all read, delete, or test-send.
+- Preferences live at `/app/api/notifications/preferences` (toggled in the UI): browser push, email, in-app, class reminders, location alerts, quiet hours.
+- Broadcast (professors) or per-user notifications go through the notification service; scheduled items are auto-sent when due.
+
+## Feature Highlights
+- Password + optional Google OAuth login.
+- Real-time geolocation capture with reverse geocoded city names.
+- Attendance tracking with clock in/out and per-day totals.
+- Class management (capacity, enrollment toggle, rosters).
+- Notifications with in-app feed, push subscription support, preferences, and scheduled dispatch.
+
+## Troubleshooting
+- **Geolocation denied:** Allow location access in your browser; refresh the dashboard.
+- **Database missing:** Re-run `python scripts/setup_database.py` or `flask --app app db upgrade`.
+- **OAuth redirect issues:** Ensure the redirect URI matches `/app/oauth/callback` and your domain/port; set both client ID and secret.
+- **Reverse geocoding timeouts:** The app falls back to “Unknown”; retry with a stable connection or replace the default Nominatim User-Agent with your contact info in `studenttracker/utils.py`.
+
+## Project Layout
 ```
-app.py                     # Thin entry point invoking the application factory
-studenttracker/            # Application package (factory, models, routes, helpers)
-  __init__.py              # create_app factory, middleware, OAuth + DB setup
-  extensions.py            # Shared SQLAlchemy/Migrate/OAuth instances
-  middleware.py            # Prefix-aware proxy middleware
-  models.py                # SQLAlchemy models for users, classes, locations
-  routes/                  # Grouped route registrations (auth, dashboard, APIs)
-  utils.py                 # Template filters, time tracking helpers, geocoding
-templates/                 # Jinja2 templates (landing page, auth, dashboard, database view)
-static/css/styles.css      # Global styling
-static/js/app.js           # Front-end geolocation + map logic
-instance/studenttracker.db # SQLite database (created at runtime)
-requirements.txt           # Python dependencies
+app.py                     # Entry point using the Flask factory
+studenttracker/            # Application package
+  __init__.py              # Factory, middleware, OAuth + DB setup, seed data
+  models.py                # SQLAlchemy models (users, classes, locations, notifications)
+  routes/                  # Auth, dashboards, API, notifications, classes, chat
+  services/notification_service.py
+  utils.py                 # Template filters, time-tracking helpers, geocoding
+templates/                 # Jinja2 templates (auth, dashboards, classes, notifications)
+static/                    # JS/CSS, map + notification assets
+scripts/setup_database.py  # Local DB bootstrap helper
 ```
 
-## Key Routes
-- `GET /` – Marketing landing page.
-- `GET|POST /register/student` – Student account registration.
-- `GET|POST /register/professor` – Professor account registration.
-- `GET|POST /login/student` and `/login/professor` – Role-specific authentication.
-- `GET /dashboard/student` – Student dashboard with real-time map, location status, and clock controls.
-- `GET /dashboard/professor` – Professor dashboard with recent student activity.
-- `POST /update_location` – Receives `{lat, lng, accuracy}` JSON payloads; updates user record and stores a location row.
-- `POST /clock_event` – Accepts clock in/out events with optional coordinates.
-- `GET /database` – Displays recent locations, registered users, and per-day campus time totals (requires login).
-
-## Location & Time Tracking Workflow
-1. User logs in and reaches the dashboard.
-2. Browser geolocation retrieves the current position and updates the UI (`static/js/app.js`).
-3. The same geolocation payload is POSTed to `/update_location`.
-4. Backend stores the coordinates, reverse geocodes the city name via Nominatim, and records the timestamp.
-5. Users interact with the clock in/out buttons, which POST to `/clock_event`.
-6. Backend persists each event and, on clock-out, calculates time elapsed since the prior clock-in, rolling totals into the `daily_campus_time` table (splitting multi-day spans automatically).
-7. Admins and students can review time totals alongside location history in the `/database` view.
-
-## Development Notes
-- The default Nominatim request includes a simple User-Agent string; update it with contact details before production use.
-- SQLite is stored under `instance/`. Add this directory to `.gitignore` (already practical) to avoid committing local databases.
-- Consider enabling HTTPS and same-site cookie settings before deployment.
-- All blueprints are registered under `/app`, so reverse proxies only need to pass the usual host/proto headers—no `X-Forwarded-Prefix` rewrites required.
-
-## Future Enhancements
-- Role-based access to separate student and staff dashboards.
-- Automated migration workflow (`flask db migrate`) tied to a release process.
-- Tests for authentication, location update API, and geocoding fallbacks.
+## Deployment Notes
+- Set a strong `FLASK_SECRET`, enable HTTPS/secure cookies, and configure a proper reverse proxy (ProxyFix is pre-enabled).
+- Use Alembic migrations for schema changes (`flask db migrate` / `flask db upgrade`).
+- Replace the default Nominatim User-Agent with a contact email before production use.
 
 ## Contributors
-- CSCI 4250 Scrum Team
+- Jacob Hebert
+- Deep Desai
+- Shane Austin
+- Ishwari Patel
