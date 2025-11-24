@@ -104,40 +104,6 @@ def create_app():
         from studenttracker import models  # noqa: F401
         from studenttracker.models import Professor, Student, Class, StudentLocation
 
-        def ensure_seed_users():
-            created = False
-
-            if not Student.query.filter_by(username="student1").first():
-                student = Student(
-                    student_id="S0001",
-                    username="student1",
-                    password_hash=generate_password_hash("1234"),
-                    email="student1@example.com",
-                    first_name="Sample",
-                    last_name="Student",
-                    major="Computer Science",
-                    year="Senior",
-                )
-                db.session.add(student)
-                created = True
-
-            if not Professor.query.filter_by(username="professor1").first():
-                professor = Professor(
-                    employee_id="P0001",
-                    username="professor1",
-                    password_hash=generate_password_hash("1234"),
-                    email="professor1@example.com",
-                    first_name="Sample",
-                    last_name="Professor",
-                    department="Computer Science",
-                    title="Professor",
-                )
-                db.session.add(professor)
-                created = True
-
-            if created:
-                db.session.commit()
-
         def create_sample_data():
             """Create fake professors and classes for testing"""
             from datetime import time, date
@@ -808,7 +774,6 @@ def create_app():
 
 
         db.create_all()
-        ensure_seed_users()
         
         # Create fake professors and classes for testing
         create_sample_data()
