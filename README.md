@@ -64,6 +64,49 @@ A Flask web app that lets campus staff see student check‑ins on a map, track a
 - **OAuth redirect issues:** Ensure the redirect URI matches `/app/oauth/callback` and your domain/port; set both client ID and secret.
 - **Reverse geocoding timeouts:** The app falls back to “Unknown”; retry with a stable connection or replace the default Nominatim User-Agent with your contact info in `studenttracker/utils.py`.
 
+## API Reference (JSON)
+All API routes are served under the `/app` prefix. Authenticated session cookies are required unless noted.
+
+- `POST /app/update_location` — Save the student’s current position.  
+  Body: `{"lat": 33.75, "lng": -84.39, "accuracy": 12.3, "class_id": 1, "notes": "optional"}`  
+  Response: `{"success": true, "city": "Atlanta"}` or `401/400`.
+
+- `POST /app/clock_event` — Record a clock in/out event for the current student.  
+  Body: `{"event_type": "clock_in"|"clock_out", "timestamp": "2025-01-01T15:00:00Z", "lat": 33.75, "lng": -84.39, "accuracy": 12.3}`  
+  Response: `{"success": true, "event": {...}}` or `401/400/403`.
+
+- `POST /app/clear-locations` — Student: delete only your own `StudentLocation` records and clear last-known location.  
+  Response: `{"success": true, "message": "Cleared N location records"}` or `401`.
+
+- `POST /app/clear-all-locations` — Professor: delete all *real* student locations (keeps demo data) and reset last-known positions.  
+  Response: `{"success": true, "message": "..."}` or `401/500`.
+
+- `POST /app/heartbeat` — Student presence ping; updates `last_seen`.  
+  Response: `{"success": true}` or `401/404`.
+
+- Notifications  
+  - `GET /app/api/notifications?limit=20&unread_only=true|false` — Fetch inbox; returns `notifications`, `unread_count`.  
+  - `POST /app/api/notifications/<id>/read` — Mark one as read.  
+  - `DELETE|POST /app/api/notifications/<id>` — Delete one.  
+  - `POST /app/api/notifications/mark-all-read` — Mark all read.  
+  - `POST /app/api/notifications/preferences` — Update settings. Body example:  
+    `{"browser_push_enabled": true, "location_alerts_enabled": true, "quiet_hours_start": "22:00", "quiet_hours_end": "07:00"}`  
+  - `POST /app/api/notifications/push/subscribe` — Save a Web Push subscription. Body:  
+    `{"subscription": {"endpoint": "...", "keys": {"p256dh": "...", "auth": "..."}}, "browser": "chrome", "device_type": "desktop"}`  
+  - `POST /app/api/notifications/push/unsubscribe` — Remove one/all subscriptions. Body: `{"endpoint": "..."}` or `{}` for all.
+  - `POST /app/api/notifications/test` — Create a test notification for the current user.
+  - `POST /app/api/notifications/broadcast` — Professor: send a broadcast. Body: `{"title": "...", "message": "...", "target_type": "student"|"professor"|null}`.
+  - `POST /app/api/notifications/cleanup` — Clean up expired/read/low-priority notifications. Body: `{"aggressive": true|false}`.
+  - `POST /app/api/notifications/delete-all` — Delete all notifications for the current user.
+  - `GET /app/api/notifications/stats` — Returns counts (total/unread/recent/expired).
+
+- Classes (session required)  
+  - `GET /app/classes/` — List classes (student: all + enrolled; professor: own).  
+  - `POST /app/classes/<class_id>/enroll` — Student enroll.  
+  - `POST /app/classes/<class_id>/drop` — Student drop.  
+  - `POST /app/classes/<class_id>/toggle_enrollment` — Professor toggle open/closed.  
+  - `POST /app/classes/<class_id>/edit` — Professor edit details; multipart form data.
+
 ## Project Layout
 ```
 app.py                     # Entry point using the Flask factory
