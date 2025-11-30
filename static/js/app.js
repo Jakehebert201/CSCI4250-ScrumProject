@@ -61,9 +61,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const geoOptions = {
-        enableHighAccuracy: true,
-        maximumAge: 1000,
-        timeout: 15000,
+        // Relaxed to allow quicker, cached fixes on mobile
+        enableHighAccuracy: false,
+        maximumAge: 300000, // accept a fix up to 5 minutes old
+        timeout: 30000, // give devices more time to respond
     };
 
     let hasFix = false;
