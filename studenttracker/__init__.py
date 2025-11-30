@@ -55,19 +55,28 @@ def create_app():
     # Security headers with Talisman (only in production)
     if os.environ.get("FLASK_ENV") == "production":
         from flask_talisman import Talisman
-        Talisman(app,
+        Talisman(
+            app,
             force_https=True,
             strict_transport_security=True,
             strict_transport_security_max_age=31536000,
+            # Allow Leaflet CDN and geolocation in production
             content_security_policy={
-                'default-src': "'self'",
-                'script-src': ["'self'", "'unsafe-inline'", "https://maps.googleapis.com", "https://accounts.google.com"],
-                'style-src': ["'self'", "'unsafe-inline'"],
-                'img-src': ["'self'", "data:", "https:", "*.googleusercontent.com"],
-                'connect-src': ["'self'", "https://maps.googleapis.com", "https://accounts.google.com"],
-                'frame-src': ["'self'", "https://accounts.google.com"],
+                "default-src": "'self'",
+                "script-src": [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "https://maps.googleapis.com",
+                    "https://accounts.google.com",
+                    "https://unpkg.com",
+                ],
+                "style-src": ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+                "img-src": ["'self'", "data:", "https:", "*.googleusercontent.com"],
+                "connect-src": ["'self'", "https://maps.googleapis.com", "https://accounts.google.com"],
+                "frame-src": ["'self'", "https://accounts.google.com"],
             },
-            content_security_policy_nonce_in=['script-src']
+            content_security_policy_nonce_in=["script-src"],
+            feature_policy={"geolocation": "'self'"},
         )
 
     oauth_enabled = bool(app.config.get("GOOGLE_CLIENT_ID") and app.config.get("GOOGLE_CLIENT_SECRET"))
