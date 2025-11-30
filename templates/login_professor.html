@@ -33,6 +33,8 @@
             {% endif %}
 
             <form class="login__form" method="post" action="{{ url_for('auth.login_professor') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <label for="identifier">Employee ID, Email, or Username</label>
                 <input id="identifier" type="text" name="username" placeholder="EMP123, name@university.edu, or username" required>
 

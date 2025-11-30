@@ -109,12 +109,14 @@
                 {% if is_enrolled %}
                     <form method="post" action="{{ url_for('classes.drop_class', class_id=class_obj.id) }}" 
                           onsubmit="return confirm('Are you sure you want to drop this class?')" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn" style="background: #ef4444; color: white;">
                             🗑️ Drop Class
                         </button>
                     </form>
                 {% elif class_obj.enrollment_open and not class_obj.is_full %}
                     <form method="post" action="{{ url_for('classes.enroll_in_class', class_id=class_obj.id) }}" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn--primary">
                             ➕ Enroll in Class
                         </button>

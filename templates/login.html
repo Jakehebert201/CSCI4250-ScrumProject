@@ -12,6 +12,8 @@
             <h1>Sign In</h1>
             <p class="login__subtitle">Access the dashboard to track student locations.</p>
             <form class="login__form" method="post" action="{{ url_for('auth.login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <label for="identifier">Email or Username</label>
                 <!-- use text input named "username" so server code will accept either -->
                 <input id="identifier" type="text" name="username" placeholder="name@example.edu or username" required>

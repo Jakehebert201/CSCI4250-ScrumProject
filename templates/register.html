@@ -18,6 +18,8 @@
       {% endwith %}
 
       <form class="login__form" method="post" action="{{ url_for('auth.register_student') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <label for="username">Username</label>
         <input id="username" name="username" placeholder="your username" required>
 

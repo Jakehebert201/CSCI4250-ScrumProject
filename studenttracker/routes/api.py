@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request, session
 
-from studenttracker.extensions import db
+from studenttracker.extensions import db, csrf
 from sqlalchemy import or_
 from studenttracker.models import ClockEvent, Location, Student, StudentLocation, User
 from studenttracker.utils import add_daily_campus_time, get_city_from_coordinates, parse_event_timestamp
@@ -10,6 +10,7 @@ from studenttracker.utils import add_daily_campus_time, get_city_from_coordinate
 bp = Blueprint("api", __name__)
 
 
+@csrf.exempt
 @bp.route("/update_location", methods=["POST"])
 def update_location():
     if not session.get("user_id"):

@@ -33,6 +33,8 @@
             {% endwith %}
 
             <form class="login__form" method="post" style="gap: 1.5rem;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <!-- Basic Information -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>

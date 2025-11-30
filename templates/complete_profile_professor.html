@@ -20,6 +20,8 @@
       {% endwith %}
 
       <form class="login__form" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <label for="employee_id">Employee ID *</label>
         <input id="employee_id" name="employee_id" placeholder="EMP123456" required>
 

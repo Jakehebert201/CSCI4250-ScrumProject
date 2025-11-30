@@ -36,6 +36,7 @@
                         ✏️ Edit Class
                     </a>
                     <form method="post" action="{{ url_for('classes.toggle_enrollment', class_id=class_obj.id) }}" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn--primary">
                             {% if class_obj.enrollment_open %}🔒 Close Enrollment{% else %}🔓 Open Enrollment{% endif %}
                         </button>
