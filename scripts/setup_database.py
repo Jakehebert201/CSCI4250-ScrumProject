@@ -33,24 +33,24 @@ from studenttracker import create_app, db  # noqa: E402,F401
 def _candidate_sqlite_paths() -> list[Path]:
     """Resolve the SQLite file paths that might be in use."""
     db_url = os.environ.get("DATABASE_URL")
-    paths: list[Path] = []
 
-    if db_url:
-        try:
-            url = make_url(db_url)
-        except ArgumentError as exc:
-            print(f"Warning: could not parse DATABASE_URL ({exc}); falling back to default.")
-        else:
-            if url.drivername.startswith("sqlite") and url.database:
-                db_path = Path(url.database)
-                if not db_path.is_absolute():
-                    db_path = (REPO_ROOT / db_path).resolve()
-                paths.append(db_path)
+    if not db_url:
+        return [DEFAULT_DB_PATH]
 
-    if not paths:
-        paths.append(DEFAULT_DB_PATH)
+    try:
+        url = make_url(db_url)
+    except ArgumentError as exc:
+        print(f"Warning: could not parse DATABASE_URL ({exc}); falling back to default.")
+        return [DEFAULT_DB_PATH]
 
-    return paths
+    if url.drivername.startswith("sqlite") and url.database:
+        db_path = Path(url.database)
+        if not db_path.is_absolute():
+            db_path = (REPO_ROOT / db_path).resolve()
+        return [db_path]
+
+    print(f"DATABASE_URL is non-SQLite ({url.drivername}); skipping SQLite bootstrap.")
+    return []
 
 
 def _prepare_sqlite_targets() -> None:
