@@ -5,8 +5,8 @@ from typing import List, Optional, Dict, Any
 
 from studenttracker.extensions import db
 from studenttracker.models import (
-    Student, Professor, Class, Notification, NotificationType, 
-    UserNotificationPreference, PushSubscription
+    Student, Professor, Class, Notification, NotificationType,
+    UserNotificationPreference, PushSubscription, NotificationDismissal
 )
 
 class NotificationService:
@@ -261,16 +261,34 @@ class NotificationService:
         unread_only: bool = False
     ) -> List[Notification]:
         """Get notifications for a specific user"""
+        # Exclude notifications the user has dismissed (dismissed_at set)
+        dismissed_subq = db.session.query(NotificationDismissal.notification_id).filter(
+            NotificationDismissal.user_id == user_id,
+            NotificationDismissal.user_type == user_type,
+            NotificationDismissal.dismissed_at.isnot(None)
+        ).subquery()
+
+        # Notifications the user has explicitly marked as read
+        read_subq = db.session.query(NotificationDismissal.notification_id).filter(
+            NotificationDismissal.user_id == user_id,
+            NotificationDismissal.user_type == user_type,
+            NotificationDismissal.is_read == True
+        ).subquery()
+
         query = Notification.query.filter(
-            db.or_(
-                Notification.user_id == user_id,
-                Notification.user_type == user_type,
-                db.and_(Notification.user_id.is_(None), Notification.user_type.is_(None))
+            db.and_(
+                ~Notification.id.in_(dismissed_subq),
+                db.or_(
+                    Notification.user_id == user_id,
+                    Notification.user_type == user_type,
+                    db.and_(Notification.user_id.is_(None), Notification.user_type.is_(None))
+                )
             )
         )
-        
+
         if unread_only:
-            query = query.filter(Notification.is_read == False)
+            # Exclude those that user has marked as read
+            query = query.filter(~Notification.id.in_(read_subq))
         
         # Filter out expired notifications
         query = query.filter(
@@ -282,19 +300,50 @@ class NotificationService:
         
         return query.order_by(Notification.created_at.desc()).limit(limit).all()
     
-    def mark_notification_read(self, notification_id: int, user_id: int) -> bool:
-        """Mark a notification as read for a specific user"""
+    def mark_notification_read(self, notification_id: int, user_id: int, user_type: str) -> bool:
+        """Mark a notification as read for a specific user (per-user state).
+
+        This creates or updates a NotificationDismissal record with is_read=True so
+        broadcasts aren't marked read for everyone.
+        """
         try:
             notification = Notification.query.get(notification_id)
-            if notification and (
-                notification.user_id == user_id or 
-                notification.user_id is None
-            ):
-                notification.mark_as_read()
-                return True
-            return False
+            if not notification:
+                return False
+
+            # Ensure the user can see the notification
+            can_see = (
+                notification.user_id == user_id or
+                notification.user_id is None or
+                notification.user_type == user_type
+            )
+            if not can_see:
+                return False
+
+            dismissal = NotificationDismissal.query.filter_by(
+                notification_id=notification_id,
+                user_id=user_id,
+                user_type=user_type
+            ).first()
+
+            if not dismissal:
+                dismissal = NotificationDismissal(
+                    notification_id=notification_id,
+                    user_id=user_id,
+                    user_type=user_type,
+                    is_read=True,
+                    read_at=datetime.utcnow()
+                )
+                db.session.add(dismissal)
+            else:
+                dismissal.is_read = True
+                dismissal.read_at = datetime.utcnow()
+
+            db.session.commit()
+            return True
         except Exception as e:
             print(f"Error marking notification as read: {e}")
+            db.session.rollback()
             return False
     
     def create_class_reminder(self, class_obj: Class, minutes_before: int = 15):
@@ -416,21 +465,26 @@ class NotificationService:
                 Notification.expires_at.isnot(None),
                 Notification.expires_at < datetime.utcnow()
             ).delete()
-            
-            # Delete read notifications older than 30 days
+            # Delete read notifications older than 30 days (user-specific only)
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            read_subq = db.session.query(NotificationDismissal.notification_id).filter(
+                NotificationDismissal.is_read == True
+            ).subquery()
+
             old_read_count = Notification.query.filter(
-                Notification.is_read == True,
-                Notification.created_at < thirty_days_ago
-            ).delete()
-            
-            # Delete unread low-priority notifications older than 7 days
+                Notification.user_id.isnot(None),
+                Notification.created_at < thirty_days_ago,
+                Notification.id.in_(read_subq)
+            ).delete(synchronize_session=False)
+
+            # Delete unread low-priority notifications older than 7 days (user-specific)
             seven_days_ago = datetime.utcnow() - timedelta(days=7)
             old_low_priority_count = Notification.query.filter(
-                Notification.is_read == False,
+                Notification.user_id.isnot(None),
                 Notification.priority == 'low',
-                Notification.created_at < seven_days_ago
-            ).delete()
+                Notification.created_at < seven_days_ago,
+                ~Notification.id.in_(read_subq)
+            ).delete(synchronize_session=False)
             
             db.session.commit()
             

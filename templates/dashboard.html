@@ -79,5 +79,28 @@
       });
     }
     </script>
+        <script>
+        // If geolocation is missing (insecure origin), show a helpful message
+        (function() {
+            var msgEl = document.getElementById('location-message');
+            if (!navigator.geolocation && msgEl) {
+                if (window.location.protocol === 'http:') {
+                    msgEl.textContent = 'Location is blocked on insecure connections (HTTP). Please use HTTPS or run the app on localhost to enable geolocation.';
+                    var tryBtn = document.createElement('button');
+                    tryBtn.textContent = 'Try HTTPS';
+                    tryBtn.className = 'btn';
+                    tryBtn.style.marginLeft = '0.5rem';
+                    tryBtn.addEventListener('click', function() {
+                        window.location.href = window.location.href.replace('http://', 'https://');
+                    });
+                    msgEl.appendChild(document.createElement('br'));
+                    msgEl.appendChild(tryBtn);
+                } else {
+                    msgEl.textContent = 'Geolocation is not available in your browser or permission was denied.';
+                }
+            }
+        })();
+        </script>
+        <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
 </body>
 </html>

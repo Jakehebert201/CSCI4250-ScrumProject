@@ -319,6 +319,29 @@ class Notification(db.Model):
         return f'<Notification {self.title}>'
 
 
+class NotificationDismissal(db.Model):
+    """Per-user dismissal/read/deleted state for notifications that are broadcasts or group-targeted.
+
+    This allows an individual user to dismiss a broadcast without deleting the notification row
+    (which would remove it for all users).
+    """
+    __tablename__ = 'notification_dismissal'
+
+    id = db.Column(db.Integer, primary_key=True)
+    notification_id = db.Column(db.Integer, db.ForeignKey('notification.id'), nullable=False)
+    user_id = db.Column(db.Integer, nullable=False)
+    user_type = db.Column(db.String(20), nullable=False)
+    dismissed_at = db.Column(db.DateTime, nullable=True)
+    # Per-user read state
+    is_read = db.Column(db.Boolean, default=False)
+    read_at = db.Column(db.DateTime, nullable=True)
+
+    notification = db.relationship('Notification', backref=db.backref('dismissals', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<NotificationDismissal notif={self.notification_id} user={self.user_id} read={self.is_read}>'
+
+
 class UserNotificationPreference(db.Model):
     __tablename__ = 'user_notification_preference'
     

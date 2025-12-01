@@ -118,6 +118,26 @@
     <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script>
     var lastKnownPosition = null;
+    // If geolocation API is missing (common on insecure origins), show guidance
+    if (!navigator.geolocation) {
+      var msgEl = document.getElementById('location-message');
+      if (msgEl) {
+        if (window.location.protocol === 'http:') {
+          msgEl.textContent = 'Location is blocked on insecure connections (HTTP). Please use HTTPS or run the app on localhost to enable geolocation.';
+          var tryBtn = document.createElement('button');
+          tryBtn.textContent = 'Try HTTPS';
+          tryBtn.className = 'btn';
+          tryBtn.style.marginLeft = '0.5rem';
+          tryBtn.addEventListener('click', function() {
+            window.location.href = window.location.href.replace('http://', 'https://');
+          });
+          msgEl.appendChild(document.createElement('br'));
+          msgEl.appendChild(tryBtn);
+        } else {
+          msgEl.textContent = 'Geolocation is not available in your browser or permission was denied.';
+        }
+      }
+    }
     // Send location to server for students
     function postLocation(lat, lng, accuracy) {
       lastKnownPosition = { lat: lat, lng: lng, accuracy: accuracy };

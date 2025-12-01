@@ -3,11 +3,19 @@ from datetime import datetime
 
 from studenttracker.extensions import db
 from studenttracker.models import (
-    Notification, NotificationType, UserNotificationPreference, PushSubscription
+    Notification, NotificationType, UserNotificationPreference, PushSubscription,
+    NotificationDismissal
 )
 from studenttracker.services.notification_service import notification_service
+from studenttracker.extensions import csrf
 
 bp = Blueprint("notifications", __name__, url_prefix="/app")
+
+# Exempt the notifications blueprint from Flask-WTF CSRF checks because
+# these routes are called via fetch/XHR from same-origin scripts. If you
+# prefer stricter protection, add a JS header with the CSRF token instead
+# of exempting the blueprint.
+csrf.exempt(bp)
 
 @bp.route("/notifications")
 def notification_center():
@@ -74,7 +82,8 @@ def mark_notification_read(notification_id):
         return jsonify({"error": "Not authenticated"}), 401
     
     user_id = session.get("user_id")
-    success = notification_service.mark_notification_read(notification_id, user_id)
+    user_type = session.get("user_type")
+    success = notification_service.mark_notification_read(notification_id, user_id, user_type)
     
     if success:
         return jsonify({"success": True})
@@ -106,18 +115,45 @@ def delete_notification(notification_id):
         if not can_see:
             return jsonify({"error": "Access denied"}), 403
         
-        # Delete the notification
-        db.session.delete(notification)
-        db.session.commit()
-        
-        # Verify it's gone
-        check = Notification.query.get(notification_id)
-        if check:
+        # If this notification is a broadcast or group-targeted (i.e. not owned
+        # by a specific user), create a per-user dismissal record so this user
+        # no longer sees it without deleting the shared notification row.
+        if notification.user_id is None or (notification.user_id != user_id and notification.user_type is not None):
+            # Create dismissal entry
+            existing = NotificationDismissal.query.filter_by(
+                notification_id=notification.id,
+                user_id=user_id,
+                user_type=user_type
+            ).first()
+
+            if not existing:
+                dismissal = NotificationDismissal(
+                    notification_id=notification.id,
+                    user_id=user_id,
+                    user_type=user_type,
+                    dismissed_at=datetime.utcnow()
+                )
+                db.session.add(dismissal)
+                db.session.commit()
+
+            return jsonify({"success": True, "message": "Notification dismissed for this user", "id": notification_id})
+
+        # Otherwise this is a user-specific notification; remove any per-user
+        # dismissal rows first to avoid FK/NULL update issues, then delete
+        # the notification row.
+        try:
+            # Use 'fetch' so SQLAlchemy will synchronize any in-memory
+            # NotificationDismissal objects in the session (avoid attempted
+            # NULL-updates during flush).
+            NotificationDismissal.query.filter_by(notification_id=notification.id).delete(synchronize_session='fetch')
+            db.session.delete(notification)
+            db.session.commit()
+            return jsonify({"success": True, "message": "Notification deleted", "id": notification_id})
+        except Exception as e:
+            db.session.rollback()
             from flask import current_app
-            current_app.logger.error(f"Notification {notification_id} still exists after delete!")
-            return jsonify({"error": "Delete failed - notification still exists"}), 500
-        
-        return jsonify({"success": True, "message": "Notification deleted", "id": notification_id})
+            current_app.logger.error(f"Error deleting notification {notification_id}: {str(e)}")
+            return jsonify({"error": "Internal server error"}), 500
         
     except Exception as e:
         db.session.rollback()
@@ -143,11 +179,13 @@ def mark_all_notifications_read():
             unread_only=True
         )
         
-        # Mark all as read
+        # Mark all as read for this user (per-user state)
+        marked = 0
         for notification in notifications:
-            notification.mark_as_read()
-        
-        return jsonify({"success": True, "marked_count": len(notifications)})
+            if notification_service.mark_notification_read(notification.id, user_id, user_type):
+                marked += 1
+
+        return jsonify({"success": True, "marked_count": marked})
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -422,52 +460,49 @@ def cleanup_notifications():
         expired_count = expired_query.delete(synchronize_session=False)
         
         if aggressive:
-            # Aggressive mode: delete all read notifications
+            # Aggressive mode: delete all read notifications that are user-specific
+            # (do NOT delete global/broadcast notifications just because one user read them)
+            read_subq = db.session.query(NotificationDismissal.notification_id).filter(
+                NotificationDismissal.user_id == user_id,
+                NotificationDismissal.user_type == user_type,
+                NotificationDismissal.is_read == True
+            ).subquery()
+
             read_query = Notification.query.filter(
-                Notification.is_read == True
-            ).filter(
-                db.or_(
-                    Notification.user_id == user_id,
-                    db.and_(Notification.user_id.is_(None), Notification.user_type == user_type)
-                )
+                Notification.user_id == user_id,
+                Notification.id.in_(read_subq)
             )
             old_read_count = read_query.delete(synchronize_session=False)
-            
-            # Delete all low-priority notifications
+
+            # Delete all low-priority notifications that are user-specific
             low_priority_query = Notification.query.filter(
-                Notification.priority == 'low'
-            ).filter(
-                db.or_(
-                    Notification.user_id == user_id,
-                    db.and_(Notification.user_id.is_(None), Notification.user_type == user_type)
-                )
+                Notification.priority == 'low',
+                Notification.user_id == user_id
             )
             old_low_priority_count = low_priority_query.delete(synchronize_session=False)
         else:
             # Standard mode: delete read notifications older than 30 days
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            read_subq = db.session.query(NotificationDismissal.notification_id).filter(
+                NotificationDismissal.user_id == user_id,
+                NotificationDismissal.user_type == user_type,
+                NotificationDismissal.is_read == True
+            ).subquery()
+
             read_query = Notification.query.filter(
-                Notification.is_read == True,
-                Notification.created_at < thirty_days_ago
-            ).filter(
-                db.or_(
-                    Notification.user_id == user_id,
-                    db.and_(Notification.user_id.is_(None), Notification.user_type == user_type)
-                )
+                Notification.user_id == user_id,
+                Notification.created_at < thirty_days_ago,
+                Notification.id.in_(read_subq)
             )
             old_read_count = read_query.delete(synchronize_session=False)
-            
-            # Delete unread low-priority notifications older than 7 days
+
+            # Delete unread low-priority notifications older than 7 days (user-specific)
             seven_days_ago = datetime.utcnow() - timedelta(days=7)
             low_priority_query = Notification.query.filter(
-                Notification.is_read == False,
+                Notification.user_id == user_id,
                 Notification.priority == 'low',
-                Notification.created_at < seven_days_ago
-            ).filter(
-                db.or_(
-                    Notification.user_id == user_id,
-                    db.and_(Notification.user_id.is_(None), Notification.user_type == user_type)
-                )
+                Notification.created_at < seven_days_ago,
+                ~Notification.id.in_(read_subq)
             )
             old_low_priority_count = low_priority_query.delete(synchronize_session=False)
         
@@ -531,43 +566,44 @@ def get_notification_stats():
     try:
         from datetime import timedelta
         
-        # Total notifications
-        total = Notification.query.filter(
-            db.or_(
-                Notification.user_id == user_id,
-                Notification.user_type == user_type,
-                db.and_(Notification.user_id.is_(None), Notification.user_type.is_(None))
-            )
-        ).count()
-        
-        # Unread notifications
-        unread = Notification.query.filter(
-            db.or_(
-                Notification.user_id == user_id,
-                Notification.user_type == user_type,
-                db.and_(Notification.user_id.is_(None), Notification.user_type.is_(None))
-            ),
-            Notification.is_read == False
-        ).count()
-        
-        # Notifications from last 7 days
+        # Respect per-user dismissals and per-user read state when computing stats
+        from datetime import timedelta
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        recent = Notification.query.filter(
-            db.or_(
-                Notification.user_id == user_id,
-                Notification.user_type == user_type,
-                db.and_(Notification.user_id.is_(None), Notification.user_type.is_(None))
-            ),
-            Notification.created_at >= seven_days_ago
-        ).count()
-        
-        # Expired notifications
-        expired = Notification.query.filter(
-            db.or_(
-                Notification.user_id == user_id,
-                Notification.user_type == user_type,
-                db.and_(Notification.user_id.is_(None), Notification.user_type.is_(None))
-            ),
+
+        dismissed_subq = db.session.query(NotificationDismissal.notification_id).filter(
+            NotificationDismissal.user_id == user_id,
+            NotificationDismissal.user_type == user_type,
+            NotificationDismissal.dismissed_at.isnot(None)
+        ).subquery()
+
+        read_subq = db.session.query(NotificationDismissal.notification_id).filter(
+            NotificationDismissal.user_id == user_id,
+            NotificationDismissal.user_type == user_type,
+            NotificationDismissal.is_read == True
+        ).subquery()
+
+        base_visible = Notification.query.filter(
+            db.and_(
+                ~Notification.id.in_(dismissed_subq),
+                db.or_(
+                    Notification.user_id == user_id,
+                    Notification.user_type == user_type,
+                    db.and_(Notification.user_id.is_(None), Notification.user_type.is_(None))
+                )
+            )
+        )
+
+        # Total visible notifications for user
+        total = base_visible.count()
+
+        # Unread == visible and not marked read by this user
+        unread = base_visible.filter(~Notification.id.in_(read_subq)).count()
+
+        # Notifications from last 7 days (visible)
+        recent = base_visible.filter(Notification.created_at >= seven_days_ago).count()
+
+        # Expired (visible)
+        expired = base_visible.filter(
             Notification.expires_at.isnot(None),
             Notification.expires_at < datetime.utcnow()
         ).count()
