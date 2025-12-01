@@ -328,7 +328,8 @@ class NotificationDismissal(db.Model):
     __tablename__ = 'notification_dismissal'
 
     id = db.Column(db.Integer, primary_key=True)
-    notification_id = db.Column(db.Integer, db.ForeignKey('notification.id'), nullable=False)
+    # Make the FK cascade at the DB level so deleting a Notification removes related dismissals
+    notification_id = db.Column(db.Integer, db.ForeignKey('notification.id', ondelete='CASCADE'), nullable=False)
     user_id = db.Column(db.Integer, nullable=False)
     user_type = db.Column(db.String(20), nullable=False)
     dismissed_at = db.Column(db.DateTime, nullable=True)
@@ -336,7 +337,11 @@ class NotificationDismissal(db.Model):
     is_read = db.Column(db.Boolean, default=False)
     read_at = db.Column(db.DateTime, nullable=True)
 
-    notification = db.relationship('Notification', backref=db.backref('dismissals', lazy='dynamic'))
+    # Configure relationship so SQLAlchemy emits deletes correctly and honors DB ON DELETE behavior
+    notification = db.relationship(
+        'Notification',
+        backref=db.backref('dismissals', lazy='dynamic', cascade='all, delete-orphan', passive_deletes=True)
+    )
 
     def __repr__(self):
         return f'<NotificationDismissal notif={self.notification_id} user={self.user_id} read={self.is_read}>'
