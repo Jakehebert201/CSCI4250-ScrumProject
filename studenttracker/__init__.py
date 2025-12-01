@@ -77,6 +77,7 @@ def create_app():
             },
             content_security_policy_nonce_in=["script-src"],
             feature_policy={"geolocation": "'self'"},
+            permissions_policy={"geolocation": "self"},
         )
 
     oauth_enabled = bool(app.config.get("GOOGLE_CLIENT_ID") and app.config.get("GOOGLE_CLIENT_SECRET"))
