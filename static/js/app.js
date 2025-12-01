@@ -44,20 +44,43 @@ document.addEventListener("DOMContentLoaded", () => {
         messageElement.classList.remove("dashboard__message--error");
     };
 
+    // Determine server-side fallback coordinates (set in templates as data-* attributes)
+    const fallbackLat = mapElement.dataset.lastLat ? parseFloat(mapElement.dataset.lastLat) : null;
+    const fallbackLng = mapElement.dataset.lastLng ? parseFloat(mapElement.dataset.lastLng) : null;
+    const fallbackAccuracy = mapElement.dataset.lastAccuracy ? parseFloat(mapElement.dataset.lastAccuracy) : null;
+
     const handleError = (error) => {
         const messages = {
             1: "Permission denied. Enable location access to view your position.",
             2: "Location unavailable. Check your device settings.",
             3: "Location request timed out. Try again.",
         };
-        messageElement.textContent = messages[error.code] || "Unable to retrieve location.";
+        messageElement.textContent = messages[error && error.code] || "Unable to retrieve location.";
         messageElement.classList.add("dashboard__message--error");
+
+        // If we have a server-side fallback, use it instead of leaving the map empty
+        if (fallbackLat != null && fallbackLng != null) {
+            const coords = { latitude: fallbackLat, longitude: fallbackLng, accuracy: fallbackAccuracy || 0 };
+            window.lastKnownPosition = { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy };
+            updateStatus(coords);
+            messageElement.textContent = "Using last-known server location after geolocation error.";
+            messageElement.classList.remove("dashboard__message--error");
+        }
     };
 
     if (!("geolocation" in navigator)) {
-        messageElement.textContent = "Geolocation is not supported by this browser.";
-        messageElement.classList.add("dashboard__message--error");
-        return;
+        // If geolocation is unavailable (insecure origin or browser), use server-provided last-known location if available
+        if (fallbackLat != null && fallbackLng != null) {
+            const coords = { latitude: fallbackLat, longitude: fallbackLng, accuracy: fallbackAccuracy || 0 };
+            window.lastKnownPosition = { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy };
+            updateStatus(coords);
+            messageElement.textContent = "Using last-known server location (client geolocation unavailable).";
+            messageElement.classList.remove("dashboard__message--error");
+        } else {
+            messageElement.textContent = "Geolocation is not supported by this browser.";
+            messageElement.classList.add("dashboard__message--error");
+        }
+        // Do not return here — allow fallbacks/other code to run
     }
 
     const geoOptions = {

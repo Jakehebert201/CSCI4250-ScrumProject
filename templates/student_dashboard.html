@@ -68,7 +68,10 @@
                     <span id="timestamp" class="status__value">Waiting...</span>
                 </div>
             </div>
-            <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing your current location"></div>
+              <div id="location-map" class="dashboard__map" role="img" aria-label="Map showing your current location"
+                data-last-lat="{{ student.last_lat or '' }}"
+                data-last-lng="{{ student.last_lng or '' }}"
+                data-last-accuracy="{{ student.last_accuracy or '' }}"></div>
             <p id="location-message" class="dashboard__message">Requesting location access...</p>
             
             <!-- Student's Location History Map -->
@@ -326,12 +329,20 @@
             const group = new L.featureGroup(historyMarkers);
             historyMap.fitBounds(group.getBounds().pad(0.1));
         } else {
-            // If no history, center on current location if available
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(pos) {
-                    historyMap.setView([pos.coords.latitude, pos.coords.longitude], 10);
-                });
+          // If no history, center on current location if available.
+          if (window.lastKnownPosition) {
+            historyMap.setView([window.lastKnownPosition.lat, window.lastKnownPosition.lng], 10);
+          } else if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+              historyMap.setView([pos.coords.latitude, pos.coords.longitude], 10);
+            });
+          } else {
+            // Fallback to server last-known stored on the main map element
+            const mainMapEl = document.getElementById('location-map');
+            if (mainMapEl && mainMapEl.dataset.lastLat && mainMapEl.dataset.lastLng) {
+              historyMap.setView([parseFloat(mainMapEl.dataset.lastLat), parseFloat(mainMapEl.dataset.lastLng)], 10);
             }
+          }
         }
     }
     

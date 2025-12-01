@@ -79,6 +79,19 @@ def create_app():
             feature_policy={"geolocation": "'self'"},
         )
 
+    # Modern browsers use the Permissions-Policy header (replacing Feature-Policy).
+    # Add an explicit Permissions-Policy response header to ensure geolocation
+    # is allowed for same-origin pages. This is harmless in dev and helpful
+    # when a reverse proxy or host strips/changes headers.
+    @app.after_request
+    def add_permissions_policy_header(response):
+        # Use the Permissions-Policy format: geolocation=(self)
+        # Some user agents still accept Feature-Policy; we keep Talisman's config
+        # but also set Permissions-Policy header for compatibility.
+        if 'Permissions-Policy' not in response.headers:
+            response.headers['Permissions-Policy'] = "geolocation=(self)"
+        return response
+
     oauth_enabled = bool(app.config.get("GOOGLE_CLIENT_ID") and app.config.get("GOOGLE_CLIENT_SECRET"))
     if oauth_enabled:
         try:
